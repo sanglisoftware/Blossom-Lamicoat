@@ -73,8 +73,8 @@ function Main() {
             <Link to="/" className="flex items-center pt-4 pl-5 intro-x">
               <img
                 alt="Midone Tailwind HTML Admin Template"
-                className="w-full"
-                src="logo.png"
+                className="w-auto"
+                src="BLFinal.png"
               />
               {/* <span className="hidden ml-3 text-lg text-white xl:block">
                 Chitale Dairy

@@ -90,6 +90,11 @@ import EnquiryList from "@/ecommerce/AdminPanel/Enquiry/EnquiryList";
 import CreateNewEnquiry from "@/ecommerce/AdminPanel/Enquiry/CreateNewEnquiry";
 import CreateNewEnquiryModal from "@/ecommerce/AdminPanel/Enquiry/CreateNewEnquiry";
 
+
+
+import Chemical from "@/ecommerce/AdminPanel/Chemical";
+import ChemicalInword from "@/ecommerce/AdminPanel/Chemical/ChemicalInword";
+import InwardList from "@/ecommerce/AdminPanel/Chemical/InwardList";
 function Router() {
   const routes = [
     {
@@ -106,6 +111,12 @@ function Router() {
             { path: "form-assignment", element: <FormAssignment /> },
             { path: "role-list", element: <RoleList /> },
             { path: "employee-list", element: <EmployeeList /> },
+            { path: "Chemical", element: <Chemical /> },
+            { path: "chemical-inword", element: <ChemicalInword/> },
+            { path: "inword-list", element: <InwardList/> },
+
+            
+
 
             { path: "Enquiry-List", element: <Enquiry /> },
  //{ path: "Create-New-Enquiry", element: <CreateNewEnquiry /> },

@@ -141,8 +141,8 @@ function Main() {
               <a href="" className="flex items-center pt-5 -intro-x">
                 <img
                   alt="Midone Tailwind HTML Admin Template"
-                  className="w-48"
-                  src="logo.png"
+                  className="w-64"
+                  src="BLFinal.png"
                 />
                 {/* <span className="ml-3 text-lg text-white"> Chitale Dairy </span> */}
               </a>

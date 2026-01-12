@@ -31,12 +31,72 @@ function Main() {
     const [statusLabel, setStatusLabel] = useState("");
     const deleteButtonRef = useRef(null);
     const HideButtonRef = useRef(null);
+    const [activeStatusRowId, setActiveStatusRowId] = useState("0");
+    const [isActiveEmployee, setIsActiveEmployee] = useState("0");
+
     const tableRef = createRef<HTMLDivElement>();
     const tabulator = useRef<Tabulator>();
     const [filterValue, setFilterValue] = useState("");
     const filterValueRef = useRef(filterValue);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     const [editingEmployeeId, setEditingEmployeeId] = useState<number | null>(null);
+
+    const [notification, setNotification] = useState<{
+        message: string;
+        type: 'success' | 'error';
+    } | null>(null);
+
+    // Update ref when filter changes
+    useEffect(() => {
+        filterValueRef.current = filterValue;
+    }, [filterValue]);
+
+
+    //Handle Status toggle Hide/Show Collection
+    const handleStatus = () => {
+
+        // Set new timer for API call
+        let debounceTimer: NodeJS.Timeout | null = null;
+
+        debounceTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(
+                    `${BASE_URL}/api/employees/${activeStatusRowId}/status`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify(Number(isActiveEmployee)),
+                    }
+                );
+
+                if (response.ok) {
+
+                    // Show success notification
+                    setNotification({
+                        message: `🔐 Employee ${isActiveEmployee === "0" ? "Hide " : "Show"} successfully`,
+                        type: "success"
+                    });
+                    setTimeout(() => setNotification(null), 2000);
+
+                    // Refresh the table data
+                    refreshTableData();
+                }
+            } catch (error) {
+                console.error("Error updating Status:", error);
+                alert("Failed to update Status. Please try again.");
+            }
+        }, 500);
+        setStatusConfirmationModal(false);
+    }
+
+    //Delete Collection Handler
+    const handleDeleteCollection = () => {
+        alert("Collection Deletd Sucessfully!");
+        setDeleteConfirmationModal(false);
+    }
 
     const initTabulator = () => {
         if (tableRef.current) {
@@ -54,7 +114,8 @@ function Main() {
                     const pageSize = tabulator.current?.getPageSize() || 10;
 
                     const params: any = {
-                        page: currentPage, size: pageSize,
+                        page: currentPage,
+                        size: pageSize,
                     };
                     // Use ref value to get current filter
                     if (filterValueRef.current) {
@@ -397,11 +458,32 @@ function Main() {
 
     return (
         <>
-
+            {notification && (
+                <div className={`fixed top-5 right-15 px-4 py-2 rounded-lg shadow-lg z-50 animate-pulse ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                    }`}>
+                    {notification.message}
+                </div>
+            )}
             {/* Status Toggle switch functionality on/off start*/}
             <input id="ihVal" type="hidden" value="0" />
             <input id="ihVal2" type="hidden" value="0" />
-       
+            <Button
+                className="hidden"
+                id="btn"
+                onClick={() => {
+                    {
+                        const employeeVisiblity = (document.querySelector("#ihVal") as HTMLInputElement).value;
+                        const rowId = (document.querySelector("#ihVal2") as HTMLInputElement).value;
+
+                        setStatusLabel(employeeVisiblity === "1" ? "Show" : "Hide");
+                        setActiveStatusRowId(rowId);
+                        setIsActiveEmployee(employeeVisiblity);
+                        setStatusConfirmationModal(true);
+                    }
+                }}
+            >
+                Status Toggle switch functionality on/off
+            </Button>
             {/* Toggle switch functionality on/off end */}
             <div className="flex flex-col items-center mt-8 intro-y sm:flex-row">
                 <h2 className="mr-auto text-lg font-medium">Employee List</h2>
@@ -511,7 +593,15 @@ function Main() {
                         >
                             Cancel
                         </Button>
-                        
+                        <Button
+                            variant={statusLabel === "Show" ? "success" : "danger"}
+                            type="button"
+                            className="w-24"
+                            ref={HideButtonRef}
+                            onClick={handleStatus}
+                        >
+                            {statusLabel}
+                        </Button>
                     </div>
                 </Dialog.Panel>
             </Dialog>
@@ -547,7 +637,15 @@ function Main() {
                         >
                             Cancel
                         </Button>
-                 
+                        <Button
+                            variant="danger"
+                            type="button"
+                            className="w-24"
+                            ref={deleteButtonRef}
+                            onClick={handleDeleteCollection}
+                        >
+                            Delete
+                        </Button>
                     </div>
                 </Dialog.Panel>
             </Dialog>
