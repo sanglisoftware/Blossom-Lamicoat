@@ -64,6 +64,7 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                         password: employee.password,
                         confirmPassword: employee.password,
                         isActive: employee.activeStatus === 1,
+                        type: employee.type
                     });
                 } catch (error) {
                     console.error("Error fetching collection:", error);
@@ -104,6 +105,7 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
         userName: "",
         password: "",
         confirmPassword: "",
+        type:"",
         isActive: true
     })
 
@@ -165,7 +167,8 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
             roleId: formData.role,
             username: formData.userName,
             activeStatus: formData.isActive ? 1 : 0,
-            password: formData.password
+            password: formData.password,
+            type: formData.type
         }
 
 
@@ -220,7 +223,7 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                 <Dialog.Panel>
                     <Dialog.Title>
                         <h2 className="mr-auto text-base font-medium">
-                            Create New Employee
+                            Edit Staff
                         </h2>
                         <Menu className="sm:hidden">
                             <Menu.Button className="block w-5 h-5">
@@ -283,7 +286,7 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                             />
                             {formErrors.lastName && <p className="text-red-500 text-sm">{formErrors.lastName}</p>}
                         </div>
-                        <div className="col-span-12 sm:col-span-6">
+                        <div className="col-span-12 sm:col-span-4">
                             <FormLabel htmlFor="mobileNo">Mobile No</FormLabel>
                             <FormInput
                                 id="mobileNo"
@@ -300,8 +303,8 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                             />
                             {formErrors.mobileNo && <p className="text-red-500 text-sm">{formErrors.mobileNo}</p>}
                         </div>
-                        <div className="col-span-12 sm:col-span-6">
-                            <FormLabel htmlFor="role">Select Role</FormLabel>
+                        <div className="col-span-12 sm:col-span-4">
+                            <FormLabel htmlFor="role">Select Designation</FormLabel>
                             <TomSelect
                                 id="role"
                                 value={formData.role}
@@ -317,10 +320,10 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                                         setFormErrors((prev) => ({ ...prev, role: "" }));
                                     }
                                 }}
-                                options={{ placeholder: "Select Role", allowEmptyOption: true }}
+                                options={{ placeholder: "Select Designation", allowEmptyOption: true }}
                                 className="w-full"
                             >
-                                <option value="">Select Role</option>
+                                <option value="">Select Designation</option>
                                 {rolesForTom.map((role) => (
                                     <option key={role.id} value={role.id}>
                                         {role.roleValue}
@@ -328,6 +331,44 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                                 ))}
                             </TomSelect>
                             {formErrors.role && <p className="text-red-500 text-sm">{formErrors.role}</p>}
+                        </div>
+
+                        <div className="col-span-12 sm:col-span-4">
+                          <FormLabel>Type</FormLabel>
+                        
+                          <div className="mt-2 flex gap-6">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="type"
+                                value="Staff"
+                                checked={formData.type === "Staff"}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, type: e.target.value });
+                                  setFormErrors((prev) => ({ ...prev, type: "" }));
+                                }}
+                              />
+                              <span>Staff</span>
+                            </label>
+                        
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="type"
+                                value="Worker"
+                                checked={formData.type === "Worker"}
+                                onChange={(e) => {
+                                  setFormData({ ...formData, type: e.target.value });
+                                  setFormErrors((prev) => ({ ...prev, type: "" }));
+                                }}
+                              />
+                              <span>Worker</span>
+                            </label>
+                          </div>
+                        
+                          {formErrors.userName && (
+                            <p className="text-red-500 text-sm mt-1">{formErrors.type}</p>
+                          )}
                         </div>
                         <div className="col-span-12 sm:col-span-4">
                             <FormLabel htmlFor="userName">User Name</FormLabel>

@@ -118,7 +118,7 @@ const EditRoleModal: React.FC<EditRoleModalProps> = ({
                 <Dialog.Panel>
                     <Dialog.Title>
                         <h2 className="mr-auto text-base font-medium">
-                            Edit Role
+                            Edit Designation
                         </h2>
                         <Menu className="sm:hidden">
                             <Menu.Button className="block w-5 h-5">
@@ -131,7 +131,7 @@ const EditRoleModal: React.FC<EditRoleModalProps> = ({
                     </Dialog.Title>
                     <Dialog.Description className="grid grid-cols-12 gap-4 gap-y-3">
                         <div className="col-span-12 sm:col-span-12">
-                            <FormLabel htmlFor="size">Role</FormLabel>
+                            <FormLabel htmlFor="size">Designation</FormLabel>
                             <FormInput
                                 id="size"
                                 type="text"

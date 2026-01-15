@@ -18,18 +18,15 @@ interface CreateNewChemicalModalProps {
 const schema = yup.object({
   chemicalName: yup
     .string()
-    .required("Chemical name is required")
-    .min(2, "Minimum 2 characters"),
+    .required("Chemical name is required"),
 
   type: yup
     .string()
-    .required("Type is required")
-    .min(2, "Minimum 2 characters"),
+    .required("Type is required"),
 
   comments: yup
     .string()
-    .required("Comments are required")
-    .min(10, "Minimum 10 characters"),
+    .required("Comments are required"),
 });
 
 const CreateNewChemical: React.FC<CreateNewChemicalModalProps> = ({
@@ -142,6 +139,7 @@ const CreateNewChemical: React.FC<CreateNewChemicalModalProps> = ({
       </Dialog.Panel>
     </Dialog>
   );
+  
 };
 
 export default CreateNewChemical;

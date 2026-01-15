@@ -145,7 +145,7 @@ function Main() {
                 placeholder: "No matching records found",
                 columns: [
                     {
-                        title: "Employee Id",
+                        title: "Staff Id",
                         minWidth: 100,
                         responsive: 0,
                         field: "id",
@@ -177,7 +177,7 @@ function Main() {
                         },
                     },
                     {
-                        title: "Role",
+                        title: "Designation",
                         minWidth: 100,
                         responsive: 0,
                         field: "roleValue",
@@ -206,6 +206,27 @@ function Main() {
                         </div>`;
                         },
                     },
+                    {
+  title: "Type",
+  minWidth: 150,
+  responsive: 0,
+  field: "type",
+  vertAlign: "middle",
+  print: false,
+  download: false,
+  formatter(cell) {
+    const response: any = cell.getData(); // ✅ FIX
+    return `
+      <div>
+        <div class="font-medium whitespace-nowrap">
+          ${response.type || "-"}
+        </div>
+      </div>
+    `;
+  },
+},
+
+
                     {
                         title: "STATUS",
                         minWidth: 30,
@@ -486,7 +507,7 @@ function Main() {
             </Button>
             {/* Toggle switch functionality on/off end */}
             <div className="flex flex-col items-center mt-8 intro-y sm:flex-row">
-                <h2 className="mr-auto text-lg font-medium">Employee List</h2>
+                <h2 className="mr-auto text-lg font-medium">Staff List</h2>
                 <div className="flex w-full mt-4 sm:w-auto sm:mt-0">
                     <Button
                         variant="primary"
@@ -495,7 +516,7 @@ function Main() {
                             setaddNewEmployeeModalPreview(true);
                         }}
                     >
-                        Add New Employee
+                        Add New Staff
                     </Button>
                 </div>
             </div>

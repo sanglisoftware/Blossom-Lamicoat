@@ -4,7 +4,7 @@ import { useRoutes } from "react-router-dom";
 import DashboardOverview1 from "../pages/DashboardOverview1";
 import Categories from "../pages/Categories";
 import AddProduct from "../pages/AddProduct";
-import ProductList from "../pages/ProductList";
+// import ProductList from "../pages/ProductList";
 import ProductGrid from "../pages/ProductGrid";
 import TransactionList from "../pages/TransactionList";
 import TransactionDetail from "../pages/TransactionDetail";
@@ -95,6 +95,35 @@ import CreateNewEnquiryModal from "@/ecommerce/AdminPanel/Enquiry/CreateNewEnqui
 import Chemical from "@/ecommerce/AdminPanel/Chemical";
 import ChemicalInword from "@/ecommerce/AdminPanel/Chemical/ChemicalInword";
 import InwardList from "@/ecommerce/AdminPanel/Chemical/InwardList";
+import GramageTable from "@/ecommerce/AdminPanel/PVCMaster/GramageTable";
+import Width from "@/ecommerce/AdminPanel/PVCMaster/width";
+import ProductCreation from "@/ecommerce/AdminPanel/PVCMaster/ProductCreation";
+import PVCInward from "@/ecommerce/AdminPanel/PVCMaster/PVCInward";
+import PVCInwardList from "@/ecommerce/AdminPanel/PVCMaster/PVCInwardList";
+import GRM from "@/ecommerce/AdminPanel/FabricMaster/GRM";
+import FabricInword from "@/ecommerce/AdminPanel/FabricMaster/FabricInword";
+import InwardReport from "@/ecommerce/AdminPanel/FabricMaster/InwardReport";
+import FinishedGood from "@/ecommerce/AdminPanel/FinishedGood";
+import GLM from "@/ecommerce/AdminPanel/FinishedGood/GSM_GLM/GLM";
+import Grade from "@/ecommerce/AdminPanel/Masters/Grade";
+import Colour from "@/ecommerce/AdminPanel/Masters/Colour";
+import Customer from "@/ecommerce/AdminPanel/Masters/Customer";
+import Supplier from "@/ecommerce/AdminPanel/Masters/Supplier";
+import FormulaMaster from "@/ecommerce/AdminPanel/Masters/FormulaMaster";
+import SaleryForm from "@/ecommerce/AdminPanel/SaleryManagement/SaleryForm";
+import SaleryReport from "@/ecommerce/AdminPanel/SaleryManagement/SaleryReport";
+import DailyAttendence from "@/ecommerce/AdminPanel/SaleryManagement/DailyAttendence";
+import AttendenceReport from "@/ecommerce/AdminPanel/SaleryManagement/AttendenceReport";
+import DailyProductionRecord from "@/ecommerce/AdminPanel/Report/DailyProductionRecord";
+import BatchingDetails from "@/ecommerce/AdminPanel/Report/BatchingDetails";
+import FinishedGoodsStock from "@/ecommerce/AdminPanel/Report/FinishedGoodsStock";
+import PurchaseDetails from "@/ecommerce/AdminPanel/Report/PurchaseDetails";
+import FabricDifference from "@/ecommerce/AdminPanel/Report/FabricDifference";
+import RMFabricStock from "@/ecommerce/AdminPanel/Report/RMFabricStock";
+import RMPVCStock from "@/ecommerce/AdminPanel/Report/RMPVCStock";
+import ChemicalStock from "@/ecommerce/AdminPanel/Report/ChemicalStock";
+// import ProductList from "@/ecommerce/AdminPanel/FabricMaster/ProductList";
+
 function Router() {
   const routes = [
     {
@@ -115,21 +144,81 @@ function Router() {
             { path: "chemical-inword", element: <ChemicalInword/> },
             { path: "inword-list", element: <InwardList/> },
 
+            { path: "gramage", element: <GramageTable/> },
+            { path: "Width", element: <Width/> },
+            { path: "product-list", element: <ProductCreation/> },
+            { path: "PVC-Inward", element: <PVCInward/> },
+            { path: "PVC-InwardList", element: <PVCInwardList/> },
+
+              { path: "grm", element: <GRM/> },
+            // { path: "product-list", element: <ProductList/> },
+            { path: "fabric-inword", element: <FabricInword/> },         
+            { path: "inword-report", element: <InwardReport/> },
+             { path: "quality", element: <FinishedGood/> },
+            { path: "GSM/GLM", element: <GLM/> },
+
+            
+            { path: "grade", element: <Grade/> },
+            { path: "colour", element: <Colour/> },
+            { path: "customer", element: <Customer/> },
+            { path: "supplier", element: <Supplier/> },
+            { path: "formula-master", element: <FormulaMaster/> },
+
+            { path: "salery-form", element: <SaleryForm/> },
+            { path: "salery-report", element: <SaleryReport/> },
+            { path: "daily-attendence", element: <DailyAttendence/> },
+            { path: "attendence-report", element: <AttendenceReport/> },
+
+
+            { path: "daily-production-record", element: <DailyProductionRecord/> },
+            { path: "batching-details", element: <BatchingDetails/> },
+            { path: "finished-goods-stock", element: <FinishedGoodsStock/> },
+            { path: "purchase-details", element: <PurchaseDetails/> },
+            { path: "fabric-difference-record", element: <FabricDifference/> },
+            { path: "RM-fabric-stock", element: <RMFabricStock/> },
+            { path: "RM-PVC-stock", element: <RMPVCStock/> },
+            { path: "chemical-stock", element: <ChemicalStock/> },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+               
+
             
 
 
             { path: "Enquiry-List", element: <Enquiry /> },
- //{ path: "Create-New-Enquiry", element: <CreateNewEnquiry /> },
+     //{ path: "Create-New-Enquiry", element: <CreateNewEnquiry /> },
 
 
             { path: "products", element: <Products /> },
 
             // ✅ NEW PRODUCT CREATION ROUTE
-            { path: "product-creation", element: <AddNewProducts /> },
+            // { path: "product-creation", element: <AddNewProducts /> },
 
             { path: "add-product", element: <AddProduct /> },
             { path: "product-size-master", element: <ProductSizeMaster /> },
-            { path: "product-list", element: <ProductList /> },
+            // { path: "product-list", element: <ProductList /> },
             { path: "product-grid", element: <ProductGrid /> },
 
             { path: "order-list", element: <OrderList /> },

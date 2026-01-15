@@ -162,7 +162,7 @@ function Main() {
                 placeholder: "No matching records found",
                 columns: [
                     {
-                        title: "Role Id",
+                        title: "Designatiom Id",
                         minWidth: 100,
                         responsive: 0,
                         field: "id",
@@ -177,7 +177,7 @@ function Main() {
                         },
                     },
                     {
-                        title: "Role",
+                        title: "Designatiom",
                         minWidth: 200,
                         responsive: 0,
                         field: "name",
@@ -430,7 +430,7 @@ function Main() {
             </Button>
             {/* Toggle switch functionality on/off end */}
             <div className="flex flex-col items-center mt-8 intro-y sm:flex-row">
-                <h2 className="mr-auto text-lg font-medium">Employee Roles</h2>
+                <h2 className="mr-auto text-lg font-medium">Staff Designation</h2>
                 <div className="flex w-full mt-4 sm:w-auto sm:mt-0">
                     <Button
                         variant="primary"
@@ -439,7 +439,7 @@ function Main() {
                             setAddRoleModalPreview(true);
                         }}
                     >
-                        Add New Role
+                        Add New designation
                     </Button>
                 </div>
             </div>
@@ -517,7 +517,7 @@ function Main() {
                 <Dialog.Panel>
                     <Dialog.Title>
                         <h2 className="mr-auto text-base font-medium">
-                            Add New Role
+                            Add New Designation
                         </h2>
                         <Menu className="sm:hidden">
                             <Menu.Button className="block w-5 h-5">
@@ -530,11 +530,11 @@ function Main() {
                     </Dialog.Title>
                     <Dialog.Description className="grid grid-cols-12 gap-4 gap-y-3">
                         <div className="col-span-12 sm:col-span-12">
-                            <FormLabel htmlFor="size">Role</FormLabel>
+                            <FormLabel htmlFor="size">Designation</FormLabel>
                             <FormInput
                                 id="size"
                                 type="text"
-                                placeholder="Role"
+                                placeholder="Designation"
                                 value={formData.roleName}
                                 onChange={(e) => {
                                     const value = e.target.value;

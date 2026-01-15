@@ -296,13 +296,13 @@ export default function Main() {
             <h2 className="text-lg font-medium">Nav Menu</h2>
             <div className="mt-5 p-5 box">
                 <div className="flex items-center">
-                    <FormLabel className="mb-0 mr-3">Role:</FormLabel>
+                    <FormLabel className="mb-0 mr-3">Designation:</FormLabel>
                     <FormSelect id="users" onChange={e => {
                         const roleId = parseInt(e.target.value);
                         setSelectedRoleId(roleId);
                         loadNavAccess(roleId.toString());
                     }}>
-                        <option>Select Role</option>
+                        <option>Select Designation</option>
                         {roles.map(r => (
                             <option key={r.id} value={r.id}>{r.roleValue}</option>
                         ))}
