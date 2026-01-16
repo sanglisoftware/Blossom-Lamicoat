@@ -4,8 +4,8 @@ import "@/assets/css/vendors/tabulator.css";
 import { createIcons, icons } from "lucide";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 
-import AddGram from "./AddGram";
-import EditGram from "./EditGram";
+import AddProductList from "./AddProductList";
+import EditProductList from "./EditProductList";
 import { FormInput } from "@/components/Base/Form";
 
 function Main() {
@@ -13,38 +13,49 @@ function Main() {
   const tabulator = useRef<Tabulator | null>(null);
 
 
-    const [filterValue, setFilterValue] = useState("");
+  const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const [addNewGramModal, setAddNewGramModal] = useState(false);
-  const [editGramModal, setEditGramModal] = useState(false);
-  const [GramToEdit, setGramToEdit] = useState<any>(null);
+  const [addNewFabricModal, setAddNewFabricModal] = useState(false);
+  const [editFabricModal, setEditFabricModal] = useState(false);
+  const [fabricToEdit, setFabricToEdit] = useState<any>(null);
 
-  const [GramtableData, setGramTableData] = useState([
-    { id: 1, grm: "200" },
-    { id: 2, grm: "300" },
-    { id: 3, grm: "500" },
+  const [fabricTableData, setFabricTableData] = useState([
+    {
+      id: 1,
+      name: "Fabric A",
+      grm: "200",
+      colour: "Red",
+      comments: "Sample",
+    },
+    {
+      id: 2,
+      name: "Fabric B",
+      grm: "300",
+      colour: "Blue",
+      comments: "Test",
+    },
   ]);
-
 
   useEffect(() => {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      data: GramtableData,
+      data: fabricTableData,
       layout: "fitColumns",
       responsiveLayout: false,
       pagination: true,
       paginationSize: 10,
       paginationSizeSelector: [10, 20, 30, 40],
-      
       columns: [
-      
-         { title: "Sr.No", hozAlign: "center", formatter: "rownum", width: 80 },
-          { title: "grm", field: "grm", minWidth: 200, hozAlign: "center", headerHozAlign: "center", },
+        { title: "Sr.No", formatter: "rownum", width: 80 },
+        { title: "Name", field: "name" },
+        { title: "GRM", field: "grm" },
+        { title: "Colour", field: "colour" },
+        { title: "Comment", field: "comments" },
         {
-          title: "Actions",
+          title: "Action",
           width: 200,
           formatter(cell) {
             const container = document.createElement("div");
@@ -60,8 +71,8 @@ function Main() {
                 classes:
                   "bg-green-100 hover:bg-green-200 text-green-800",
                 onClick: () => {
-                  setGramToEdit(rowData);
-                  setEditGramModal(true);
+                  setFabricToEdit(rowData);
+                  setEditFabricModal(true);
                 },
               },
               {
@@ -71,9 +82,9 @@ function Main() {
                   "bg-red-100 hover:bg-red-200 text-red-800",
                 onClick: () => {
                   if (
-                    confirm("Are you sure you want to delete this GRM?")
+                    confirm("Are you sure you want to delete this fabric?")
                   ) {
-                    setGramTableData((prev) =>
+                    setFabricTableData((prev) =>
                       prev.filter((r) => r.id !== rowData.id)
                     );
                   }
@@ -112,32 +123,40 @@ function Main() {
     return () => tabulator.current?.destroy();
   }, []);
 
-
   useEffect(() => {
-    tabulator.current?.replaceData(GramtableData);
-  }, [GramtableData]);
+    tabulator.current?.replaceData(fabricTableData);
+  }, [fabricTableData]);
 
-  const handleGram = (data: { grm: string }) => {
-    setGramTableData((prev) => [...prev, { id: prev.length + 1, ...data }]);
+  const handleAddFabric = (data: {
+    name: string;
+    grm: string;
+    colour: string;
+    comments: string;
+  }) => {
+    setFabricTableData((prev) => [...prev, { id: prev.length + 1, ...data }]);
   };
 
 
-  const handleUpdateGram = (data: { id: number; grm: string }) => {
-    setGramTableData((prev) =>
+  const handleUpdateFabric = (data: {
+    id: number;
+    name: string;
+    grm: string;
+    colour: string;
+    comments: string;
+  }) => {
+    setFabricTableData((prev) =>
       prev.map((row) => (row.id === data.id ? data : row))
     );
   };
-
-
-   const handleFilterChange = (value: string) => {
+const handleFilterChange = (value: string) => {
     setFilterValue(value);
 
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
 
     debounceTimeout.current = setTimeout(() => {
       if (tabulator.current) {
-        const filtered = GramtableData.filter((row) =>
-          row.grm.toLowerCase().includes(filterValueRef.current.toLowerCase())
+        const filtered = fabricTableData.filter((row) =>
+          row.name.toLowerCase().includes(filterValueRef.current.toLowerCase())
         );
         tabulator.current.replaceData(filtered);
       }
@@ -147,13 +166,13 @@ function Main() {
   return (
     <>
       <div className="flex items-center mt-8">
-        <h2 className="mr-auto text-lg font-medium">Gramage Table</h2>
+        <h2 className="mr-auto text-lg font-medium">Fabric Product List</h2>
         <Button
           variant="primary"
           className="shadow-md"
-          onClick={() => setAddNewGramModal(true)}
+          onClick={() => setAddNewFabricModal(true)}
         >
-          Add Name
+          Add Unit
         </Button>
       </div>
 
@@ -173,17 +192,17 @@ function Main() {
         </div>
       </div>
 
-      <AddGram
-        open={addNewGramModal}
-        onClose={() => setAddNewGramModal(false)}
-        onAddGram={handleGram}
+      <AddProductList
+        open={addNewFabricModal}
+        onClose={() => setAddNewFabricModal(false)}
+        onAddPVCProduct={handleAddFabric}
       />
 
-      <EditGram
-        open={editGramModal}
-        onClose={() => setEditGramModal(false)}
-        GramData={GramToEdit}
-        onUpdateGram={handleUpdateGram}
+      <EditProductList
+        open={editFabricModal}
+        onClose={() => setEditFabricModal(false)}
+        PVCProductData={fabricToEdit}
+        onUpdatePVCProduct={handleUpdateFabric}
       />
     </>
   );
