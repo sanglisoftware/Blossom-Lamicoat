@@ -122,7 +122,8 @@ import FabricDifference from "@/ecommerce/AdminPanel/Report/FabricDifference";
 import RMFabricStock from "@/ecommerce/AdminPanel/Report/RMFabricStock";
 import RMPVCStock from "@/ecommerce/AdminPanel/Report/RMPVCStock";
 import ChemicalStock from "@/ecommerce/AdminPanel/Report/ChemicalStock";
-// import ProductList from "@/ecommerce/AdminPanel/FabricMaster/ProductList";
+import FabricProductList from "@/ecommerce/AdminPanel/FabricMaster/FabricProductList";
+
 
 function Router() {
   const routes = [
@@ -151,9 +152,11 @@ function Router() {
             { path: "PVC-InwardList", element: <PVCInwardList/> },
 
               { path: "grm", element: <GRM/> },
-            // { path: "product-list", element: <ProductList/> },
+            { path: "fabricproduct-list", element: <FabricProductList/> },
             { path: "fabric-inword", element: <FabricInword/> },         
             { path: "inword-report", element: <InwardReport/> },
+
+            
              { path: "quality", element: <FinishedGood/> },
             { path: "GSM/GLM", element: <GLM/> },
 

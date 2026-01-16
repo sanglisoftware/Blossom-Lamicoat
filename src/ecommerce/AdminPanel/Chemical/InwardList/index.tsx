@@ -1,183 +1,188 @@
-import { useState } from "react";
-import Button from "@/components/Base/Button";
-import Table from "@/components/Base/Table";
+import { useState, useRef, useEffect, createRef } from "react";
 import { FormInput, FormLabel } from "@/components/Base/Form";
+import { createIcons, icons } from "lucide";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
 import EditInwardList from "./EditInwardList";
-
-
-interface ChemicalData {
-  id: number;
-  Name: string;
-  QTY: string;
-  Supplier: string;
-  Batch_No: string;
-}
-
-
-interface ModalData {
-  id: number;
-  ChemicalName: string;
-  QTY: string;
-  Supplier: string;
-  Batch_No: string;
-}
+import "@/assets/css/vendors/tabulator.css";
 
 function Main() {
-  const [editInwardlistModal, setEditInwardListModal] = useState(false);
-  const [InwardToEdit, setInwardToEdit] = useState<ModalData | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const tableRef = createRef<HTMLDivElement>();
+  const tabulator = useRef<Tabulator>();
 
-  const [tableData, setTableData] = useState<ChemicalData[]>([
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchRef = useRef(searchTerm);
+
+  const [editInwardlistModal, setEditInwardListModal] = useState(false);
+  const [InwardToEdit, setInwardToEdit] = useState<any>(null);
+
+  const [tableData, setTableData] = useState([
     { id: 1, Name: "PVC RESIN PAWDER", QTY: "", Supplier: "", Batch_No: "" },
     { id: 2, Name: "DOP P 80", QTY: "", Supplier: "", Batch_No: "" },
     { id: 3, Name: "CPW 52 AD", QTY: "", Supplier: "", Batch_No: "" },
   ]);
 
-  const handleAddChemical = (data: {
-    chemicalName: string;
-    type: string;
-    comments: string;
-  }) => {
-    setTableData((prev) => [
-      ...prev,
+  useEffect(() => {
+    searchRef.current = searchTerm;
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (!tableRef.current) return;
+
+    tabulator.current = new Tabulator(tableRef.current, {
+      data: tableData,
+      layout: "fitColumns",
+      responsiveLayout: "collapse",
+      pagination: true,
+    paginationSize: 10,
+    paginationSizeSelector: [10, 20, 30, 40],
+      placeholder: "No matching records found",
+
+      columns: [
+        {
+          title: "Sr.No",
+          formatter: "rownum",
+          hozAlign: "center",
+          width: 80,
+        },
+        {
+          title: "Chemical Name",
+          field: "Name",
+          minWidth: 200,
+        },
+        {
+          title: "QTY",
+          field: "QTY",
+          minWidth: 120,
+        },
+        {
+          title: "Supplier",
+          field: "Supplier",
+          minWidth: 180,
+        },
+        {
+          title: "Batch No",
+          field: "Batch_No",
+          minWidth: 150,
+        },
+        {
+  title: "Actions",
+  hozAlign: "center",
+  headerHozAlign: "center",
+  minWidth: 180,
+  formatter(cell) {
+    const container = document.createElement("div");
+    container.className = "flex justify-center items-center gap-2";
+
+    const rowData = cell.getRow().getData();
+
+    const actions = [
       {
-        id: prev.length + 1,
-        Name: data.chemicalName,
-        QTY: data.type,
-        Supplier: data.comments,
-        Batch_No: "",
+        label: "Edit",
+        icon: "edit",
+        classes: "bg-green-100 hover:bg-green-200 text-green-800",
+        onClick: () => {
+          setInwardToEdit({
+            id: rowData.id,
+            ChemicalName: rowData.Name,
+            QTY: rowData.QTY,
+            Supplier: rowData.Supplier,
+            Batch_No: rowData.Batch_No,
+          });
+          setEditInwardListModal(true);
+        },
       },
-    ]);
+      {
+        label: "Delete",
+        icon: "trash-2",
+        classes: "bg-red-100 hover:bg-red-200 text-red-800",
+        onClick: () => {
+          if (confirm("Are you sure you want to delete this record?")) {
+            setTableData((prev) =>
+              prev.filter((r) => r.id !== rowData.id)
+            );
+          }
+        },
+      },
+    ];
+
+    actions.forEach(({ label, icon, classes, onClick }) => {
+      const button = document.createElement("a");
+      button.href = "javascript:;";
+      button.className = `inline-flex items-center px-3 py-1.5 text-sm rounded-md ${classes}`;
+      button.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i>${label}`;
+
+      button.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClick();
+      });
+
+      container.appendChild(button);
+    });
+
+    return container;
+  },
+},
+
+      ],
+    });
+
+    tabulator.current.on("renderComplete", () => {
+      createIcons({ icons, attrs: { "stroke-width": 1.5 } });
+    });
+  }, [tableData]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    if (tabulator.current) {
+      tabulator.current.setFilter("Name", "like", value);
+    }
   };
-
-  const handleUpdateInward = (data: ModalData) => {
-    const mappedData: ChemicalData = {
-      id: data.id,
-      Name: data.ChemicalName,
-      QTY: data.QTY,
-      Supplier: data.Supplier,
-      Batch_No: data.Batch_No,
-    };
-
-    setTableData((prev) =>
-      prev.map((row) => (row.id === mappedData.id ? mappedData : row))
-    );
-  };
-
-  const handleDelete = (id: number) => {
-    setTableData((prev) => prev.filter((row) => row.id !== id));
-  };
-
-  const openEditModal = (row: ChemicalData) => {
-    const modalData: ModalData = {
-      id: row.id,
-      ChemicalName: row.Name,
-      QTY: row.QTY,
-      Supplier: row.Supplier,
-      Batch_No: row.Batch_No,
-    };
-    setInwardToEdit(modalData);
-    setEditInwardListModal(true);
-  };
-
-
-
-  const filteredData = tableData.filter((row) =>
-    row.Name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <>
-   
+      {/* Header */}
       <div className="flex items-center mt-8">
         <h2 className="mr-auto text-lg font-medium">Chemical Table</h2>
       </div>
 
-
+      {/* Table Box */}
       <div className="p-5 mt-5 box">
-
         <div className="flex items-center gap-2 mb-3">
-          <FormLabel className="whitespace-nowrap">Search:</FormLabel>
+          <FormLabel>Search:</FormLabel>
           <FormInput
             type="text"
             placeholder="Enter chemical name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-64"
+            value={searchTerm}
+            onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
 
-  
         <div className="overflow-x-auto">
-          <Table striped>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th className="whitespace-nowrap text-center">Sr.No</Table.Th>
-                <Table.Th className="whitespace-nowrap">Chemical Name</Table.Th>
-                <Table.Th className="whitespace-nowrap">QTY</Table.Th>
-                <Table.Th className="whitespace-nowrap">Supplier</Table.Th>
-                <Table.Th className="whitespace-nowrap">Batch No</Table.Th>
-                <Table.Th className="whitespace-nowrap text-center">Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-
-            <Table.Tbody>
-              {filteredData.map((row, index) => (
-                <Table.Tr key={row.id}>
-                  <Table.Td className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span>{index + 1}</span>
-                    </div>
-                  </Table.Td>
-
-
-                  <Table.Td>{row.Name}</Table.Td>
-                  <Table.Td>{row.QTY}</Table.Td>
-                  <Table.Td>{row.Supplier}</Table.Td>
-                  <Table.Td>{row.Batch_No}</Table.Td>
-
-                  <Table.Td className="text-center">
-                    <div className="flex justify-center gap-2">
-                      <Button
-                        as="a"
-                        variant="primary"
-                        href="#"
-                        className="inline-block w-24 mb-2 mr-1"
-                        onClick={(e:any) => {
-                          e.preventDefault();
-                          openEditModal(row);
-                        }}
-                      >
-                        Edit
-                      </Button>
-
-                      <Button
-                        as="a"
-                        variant="danger"
-                        href="#"
-                        className="inline-block w-24 mb-2 mr-1"
-                        onClick={(e:any) => {
-                          e.preventDefault();
-                          handleDelete(row.id);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+          <div ref={tableRef}></div>
         </div>
       </div>
 
- 
+      {/* Edit Modal */}
       <EditInwardList
         open={editInwardlistModal}
         onClose={() => setEditInwardListModal(false)}
         chemicalData={InwardToEdit}
-        onUpdateInward={handleUpdateInward}
+        onUpdateInward={(updated) => {
+          setTableData((prev) =>
+            prev.map((row) =>
+              row.id === updated.id
+                ? {
+                    id: updated.id,
+                    Name: updated.ChemicalName,
+                    QTY: updated.QTY,
+                    Supplier: updated.Supplier,
+                    Batch_No: updated.Batch_No,
+                  }
+                : row
+            )
+          );
+        }}
       />
     </>
   );
