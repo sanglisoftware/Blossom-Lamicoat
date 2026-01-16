@@ -143,7 +143,7 @@ function Main() {
                         variant="primary"
                         href="#"
                         className="inline-block w-24 mb-2 mr-1"
-                        onClick={(e) => {
+                        onClick={(e:any) => {
                           e.preventDefault();
                           openEditModal(row);
                         }}
@@ -156,7 +156,7 @@ function Main() {
                         variant="danger"
                         href="#"
                         className="inline-block w-24 mb-2 mr-1"
-                        onClick={(e) => {
+                        onClick={(e:any) => {
                           e.preventDefault();
                           handleDelete(row.id);
                         }}

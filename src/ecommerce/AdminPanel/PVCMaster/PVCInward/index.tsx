@@ -15,6 +15,7 @@ const schema = yup.object({
   qtykg: yup.string().required("QTY KG is required"),
   qtymtr: yup.string().required("QTY MTR is required"),
   comments: yup.string().required("Comments are required"),
+  billDate:yup.string()
 });
 
 const Main = () => {

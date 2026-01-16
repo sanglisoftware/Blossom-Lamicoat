@@ -37,7 +37,7 @@ const ChemicalInword = () => {
     formState: { errors },
     setValue,
   } = useForm<FormValues>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema as any),
     defaultValues: {
       chemical: "",
       supplier: "",

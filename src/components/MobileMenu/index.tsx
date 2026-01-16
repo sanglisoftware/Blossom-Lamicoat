@@ -133,7 +133,7 @@ function Main() {
                     }}
                   >
                     <div className="menu__icon">
-                      <Lucide icon={menu.icon} />
+                      <Lucide icon={menu.icon as any} />
                     </div>
                     <div className="menu__title">
                       {menu.title}
@@ -176,7 +176,7 @@ function Main() {
                               }}
                             >
                               <div className="menu__icon">
-                                <Lucide icon={subMenu.icon} />
+                                <Lucide icon={subMenu.icon as any} />
                               </div>
                               <div className="menu__title">
                                 {subMenu.title}
@@ -233,7 +233,7 @@ function Main() {
                                           }}
                                         >
                                           <div className="menu__icon">
-                                            <Lucide icon={lastSubMenu.icon} />
+                                            <Lucide icon={lastSubMenu.icon as any} />
                                           </div>
                                           <div className="menu__title">
                                             {lastSubMenu.title}

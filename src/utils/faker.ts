@@ -84,7 +84,7 @@ const fakers = {
     });
   },
   fakePhotos() {
-    const photos = [];
+    const photos = [] as any[];
     for (let i = 0; i < 15; i++) {
       photos[photos.length] =
         imageAssets[
@@ -94,7 +94,7 @@ const fakers = {
     return _.sampleSize(photos, 10);
   },
   fakeImages() {
-    const images = [];
+    const images = [] as any[];
     for (let i = 0; i < 15; i++) {
       images[images.length] =
         imageAssets[
@@ -104,7 +104,7 @@ const fakers = {
     return _.sampleSize(images, 10);
   },
   fakeDates() {
-    const dates = [];
+    const dates = [] as string[];
     for (let i = 0; i < 5; i++) {
       dates[dates.length] = dayjs
         .unix(_.random(1586584776897, 1672333200000) / 1000)

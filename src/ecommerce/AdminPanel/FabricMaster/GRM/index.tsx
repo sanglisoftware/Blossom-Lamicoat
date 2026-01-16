@@ -59,7 +59,7 @@ function Main() {
           variant="primary"
           href="#"
           className="inline-block px-5 shadow-md"
-          onClick={(e) => {
+          onClick={(e:any) => {
             e.preventDefault();
             setAddNewGramModal(true);
           }}
@@ -114,7 +114,7 @@ function Main() {
                         variant="primary"
                         href="#"
                         className="inline-block w-24 mb-2"
-                        onClick={(e) => {
+                        onClick={(e:any) => {
                           e.preventDefault();
                           setGramToEdit(row);
                           setEditGramModal(true);
@@ -128,7 +128,7 @@ function Main() {
                         variant="danger"
                         href="#"
                         className="inline-block w-24 mb-2"
-                        onClick={(e) => {
+                        onClick={(e:any) => {
                           e.preventDefault();
                           handleDelete(row.id);
                         }}

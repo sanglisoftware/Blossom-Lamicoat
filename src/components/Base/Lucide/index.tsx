@@ -20,3 +20,4 @@ function Lucide({ icon, className, ...props }: LucideProps) {
 }
 
 export default Lucide;
+export { lucideIcons as icons };

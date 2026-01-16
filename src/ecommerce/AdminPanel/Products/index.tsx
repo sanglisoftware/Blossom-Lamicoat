@@ -820,9 +820,9 @@ function Main() {
       {/* END: Delete Confirmation Modal */}
       {/* BEGIN: Add New Product*/}
       <AddProductModal
-        open={addNewProductModalPreview}
-        onClose={() => setaddNewProductModalPreview(false)}
-        onSuccess={refreshTableData}
+        // open={addNewProductModalPreview}
+        // onClose={() => setaddNewProductModalPreview(false)}
+        // onSuccess={refreshTableData}
       />
       <EditProductModal
         open={isEditModalOpen}

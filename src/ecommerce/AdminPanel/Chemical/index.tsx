@@ -40,7 +40,7 @@ function Main() {
     pagination: true,
     paginationSize: 10,
     paginationSizeSelector: [10, 20, 30, 40],
-    paginationPosition: "bottom",
+    // paginationPosition: "bottom",
     // paginationCounter: "rows",
         columns: [
           { title: "Sr.No", hozAlign: "center", formatter: "rownum", width: 80 },
