@@ -1,123 +1,105 @@
-import { useState } from "react";
-import Button from "@/components/Base/Button";
-import Table from "@/components/Base/Table";
+import { useState, useRef, useEffect, createRef } from "react";
 import { FormInput } from "@/components/Base/Form";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
+import "@/assets/css/vendors/tabulator.css";
+import Button from "@/components/Base/Button";
 import View from "./View";
 
 function Main() {
-  const [addNewChemicalModal, setAddNewChemicalModal] = useState(false);
-  const [editChemicalModal, setEditChemicalModal] = useState(false);
-  const [chemicalToEdit, setChemicalToEdit] = useState<any>(null);
+  const tableRef = createRef<HTMLDivElement>();
+  const tabulator = useRef<Tabulator | null>(null);
+
   const [searchTerm, setSearchTerm] = useState("");
-const [detailData, setDetailData] = useState<any[]>([]);
-const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-
-
+  const [detailData, setDetailData] = useState<any[]>([]);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const [tableData, setTableData] = useState([
-    { id: 1, Particular: "PVC RESIN PAWDER", MTR: ""},
-    { id: 2, Particular: "PVC RESIN PAWDER", MTR: ""},
+    { id: 1, Particular: "PVC RESIN PAWDER", MTR: "" },
+    { id: 2, Particular: "PVC RESIN PAWDER", MTR: "" },
     { id: 3, Particular: "PVC RESIN PAWDER", MTR: "" },
   ]);
 
+  useEffect(() => {
+    if (!tableRef.current) return;
 
+    tabulator.current = new Tabulator(tableRef.current, {
+      data: tableData, 
+    layout: "fitColumns",
+    responsiveLayout: "collapse",
+    placeholder: "No matching records found",
+    pagination: true,
+    paginationSize: 10,
+    paginationSizeSelector: [10, 20, 30, 40],
 
+      columns: [
+        { title: "Sr.No", formatter: "rownum", },
+        { title: "Particular", field: "Particular"},
+        { title: "MTR", field: "MTR"},
+        {
+          title: "Action",
+          hozAlign: "center",
+          formatter: (cell) => {
+            const button = document.createElement("button");
+            button.innerText = "View";
+            button.className =
+              "bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm";
+            button.onclick = () => {
+              // Example: replace with real data fetching if needed
+              setDetailData([
+                { date: "2026-01-14", prod: "PVC Resin", firstSale: 100, bal1: 50 },
+                { date: "2026-01-15", prod: "PVC Resin", firstSale: 120, bal1: 60 },
+              ]);
+              setIsViewModalOpen(true);
+            };
+            return button;
+          },
+          width: 100,
+        },
+      ],
+    });
 
-  const handleDelete = (id: number) => {
-    setTableData((prev) => prev.filter((row) => row.id !== id));
+    return () => {
+      tabulator.current?.destroy();
+      tabulator.current = null;
+    };
+  }, [tableData]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    tabulator.current?.setFilter("Particular", "like", value);
   };
-
-  const filteredData = tableData.filter((row) =>
-    row.Particular.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <>
-      
       <div className="flex items-center justify-between mt-8 mb-4">
         <h2 className="text-lg font-medium">Finished Goods Stock</h2>
       </div>
 
-
       <div className="p-5 box">
-
         <div className="flex items-center mb-3">
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="search"
+            placeholder="Search by Particular..."
             className="w-64"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
 
-
-        <div className="overflow-x-auto">
-          <Table striped>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th className="whitespace-nowrap text-center">Sr.No</Table.Th>
-                <Table.Th className="whitespace-nowrap">Particular</Table.Th>
-                <Table.Th className="whitespace-nowrap">MTR</Table.Th>
-                <Table.Th className="whitespace-nowrap text-center">Action</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-
-            <Table.Tbody>
-              {filteredData.map((row, index) => (
-                <Table.Tr key={row.id}>
-                  <Table.Td className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span>{index + 1}</span>
-                    </div>
-                  </Table.Td>
-                  <Table.Td>{row.Particular}</Table.Td>
-                  <Table.Td>{row.MTR}</Table.Td>
-                  <Table.Td className="text-center">
-                    <div className="flex justify-center gap-2">
-                      <Button
-  as="a"
-  variant="primary"
-  href="#"
-  className="inline-block w-24 mb-2 mr-1"
-  onClick={(e) => {
-    e.preventDefault();
-
-    // Example data, replace with real fetched data if needed
-    setDetailData([
-      { date: "2026-01-14", prod: "PVC Resin", firstSale: 100, bal1: 50, secondSale: 30, bal2: 20, bit: 10, saleCut: 5 },
-      { date: "2026-01-15", prod: "PVC Resin", firstSale: 120, bal1: 60, secondSale: 40, bal2: 20, bit: 15, saleCut: 5 },
-    ]);
-
-    setIsViewModalOpen(true);
-  }}
->
-  View
-</Button>
-
-
-                      
-                    </div>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </div>
+        <div
+          ref={tableRef}
+          style={{ overflowX: "auto", overflowY: "auto" }}
+        ></div>
       </div>
-<View
-  isOpen={isViewModalOpen}
-  onClose={() => setIsViewModalOpen(false)}
-  data={detailData}
-/>
 
-   
+      <View
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        data={detailData}
+      />
     </>
   );
 }
 
-
 export default Main;
-
-

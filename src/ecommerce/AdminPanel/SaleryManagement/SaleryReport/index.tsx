@@ -1,85 +1,98 @@
-import { useState } from "react";
-import Button from "@/components/Base/Button";
-import Table from "@/components/Base/Table";
+import { useState, useRef, useEffect, createRef } from "react";
 import { FormInput } from "@/components/Base/Form";
-
+import { TabulatorFull as Tabulator } from "tabulator-tables";
+import "@/assets/css/vendors/tabulator.css";
 
 function Main() {
-  const [addNewCustomerModal, setAddNewCustomerModal] = useState(false);
-  const [editCustomerModal, setEditCustomerModal] = useState(false);
-  const [CustomerToEdit, setCustomerToEdit] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const tableRef = createRef<HTMLDivElement>();
+  const tabulator = useRef<Tabulator | null>(null);
 
+  const [searchTerm, setSearchTerm] = useState("");
   const [tableData, setTableData] = useState([
-    { id: 1, Name: "username", Type: "", Date: "", SaleryPerDay:"", Attendence:"", ExtraHours:"", LateDay:"", HalfDay:"",Salery:"" },
-    { id: 2, Name: "username", Type: "", Date: "", SaleryPerDay:"", Attendence:"", ExtraHours:"", LateDay:"", HalfDay:"",Salery:"" },
-    { id: 3, Name: "username", Type: "", Date: "", SaleryPerDay:"", Attendence:"", ExtraHours:"", LateDay:"", HalfDay:"",Salery:""   },
+    {
+      id: 1,
+      Name: "username",
+      Type: "Worker",
+      Date: "2026-01-01",
+      SaleryPerDay: "500",
+      Attendence: "22",
+      ExtraHours: "5",
+      LateDay: "1",
+      HalfDay: "0",
+      Salery: "11500",
+    },
+    {
+      id: 2,
+      Name: "username2",
+      Type: "Staff",
+      Date: "2026-01-01",
+      SaleryPerDay: "600",
+      Attendence: "20",
+      ExtraHours: "2",
+      LateDay: "0",
+      HalfDay: "1",
+      Salery: "12200",
+    },
+    {
+      id: 3,
+      Name: "username3",
+      Type: "Worker",
+      Date: "2026-01-01",
+      SaleryPerDay: "450",
+      Attendence: "25",
+      ExtraHours: "0",
+      LateDay: "0",
+      HalfDay: "0",
+      Salery: "11250",
+    },
   ]);
 
-  const handleAddCustomer = (data: {
-    Name: string;
-    Type: string;
-    Date: string;
-    SaleryPerDay: string;
-    Attendence: string;
-    ExtraHours: string;
-    LateDay: string;
-    HalfDay: string;
-    Salery: string;
 
-  }) => {
-    setTableData((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        Name: data.Name,
-        Type: data.Type,
-        Date: data.Date,
-        SaleryPerDay: data.SaleryPerDay,
-        Attendence: data.Attendence,
-        ExtraHours: data.ExtraHours,
-        LateDay: data.LateDay,
-        HalfDay: data.HalfDay,
-        Salery: data.Salery,
+  useEffect(() => {
+    if (!tableRef.current) return;
 
-      },
-    ]);
+    tabulator.current = new Tabulator(tableRef.current, {
+    data: tableData, 
+    layout: "fitColumns",
+    responsiveLayout: "collapse",
+    placeholder: "No matching records found",
+    pagination: true,
+    paginationSize: 10,
+    paginationSizeSelector: [10, 20, 30, 40],
+
+      columns: [
+        { title: "Sr.No", formatter: "rownum", width: 80, hozAlign: "center" },
+        { title: "Name", field: "Name" },
+        { title: "Type", field: "Type" },
+        { title: "Date", field: "Date" },
+        { title: "Salery / Day", field: "SaleryPerDay" },
+        { title: "Attendence", field: "Attendence" },
+        { title: "Extra Hours", field: "ExtraHours" },
+        { title: "Late Day", field: "LateDay" },
+        { title: "Half Day", field: "HalfDay" },
+        { title: "Salery", field: "Salery" },
+      ],
+    });
+
+    return () => {
+      tabulator.current?.destroy();
+      tabulator.current = null;
+    };
+  }, [tableData]);
+
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    tabulator.current?.setFilter("Name", "like", value);
   };
-
-//   const handleUpdateCustomer = (data: {
-//     Name: string;
-//     Type: string;
-//     Date: string;
-//     SaleryPerDay: string;
-//     Attendence: string;
-//     ExtraHours: string;
-//     LateDay: string;
-//     HalfDay: string;
-//     Salery: string;
-//   }) => {
-//     setTableData((prev) =>
-//       prev.map((row) => (row.id === data.id ? data : row))
-//     );
-//   };
-
-  const handleDelete = (id: number) => {
-    setTableData((prev) => prev.filter((row) => row.id !== id));
-  };
-
-  const filteredData = tableData.filter((row) =>
-    row.Name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <>
-      
       <div className="flex items-center justify-between mt-8 mb-4">
-        <h2 className="text-lg font-medium">Salery Report</h2>
+        <h2 className="text-lg font-medium">Salary Report</h2>
       </div>
 
-
       <div className="p-5 box">
-
         <div className="flex items-center mb-3">
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
@@ -87,62 +100,14 @@ function Main() {
             placeholder="Enter name..."
             className="w-64"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
 
-
-        <div className="overflow-x-auto">
-          <Table striped>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th className="whitespace-nowrap text-center">Sr.No</Table.Th>
-                <Table.Th className="whitespace-nowrap">Name</Table.Th>
-                <Table.Th className="whitespace-nowrap">Type</Table.Th>
-                <Table.Th className="whitespace-nowrap">Date</Table.Th>
-                <Table.Th className="whitespace-nowrap">Salery/day</Table.Th>
-                <Table.Th className="whitespace-nowrap">Attendence</Table.Th>
-                <Table.Th className="whitespace-nowrap">Extra Hours</Table.Th>
-                <Table.Th className="whitespace-nowrap">Late Day</Table.Th>
-                <Table.Th className="whitespace-nowrap">Half Day</Table.Th>
-                <Table.Th className="whitespace-nowrap">Salery</Table.Th>
-
-
-                {/* <Table.Th className="whitespace-nowrap text-center">Actions</Table.Th> */}
-              </Table.Tr>
-            </Table.Thead>
-
-            <Table.Tbody>
-              {filteredData.map((row, index) => (
-                <Table.Tr key={row.id}>
-                  <Table.Td className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span>{index + 1}</span>
-                    </div>
-                  </Table.Td>
-                  <Table.Td>{row.Name}</Table.Td>
-                  <Table.Td>{row.Type}</Table.Td>
-                  <Table.Td>{row.Date}</Table.Td>
-                  <Table.Td>{row.SaleryPerDay}</Table.Td>
-                  <Table.Td>{row.Attendence}</Table.Td>
-                  <Table.Td>{row.ExtraHours}</Table.Td>
-                  <Table.Td>{row.LateDay}</Table.Td>
-                  <Table.Td>{row.HalfDay}</Table.Td>
-                  <Table.Td>{row.Salery}</Table.Td>
-
-
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </div>
+        <div ref={tableRef}></div>
       </div>
-     
     </>
   );
 }
 
-
 export default Main;
-
-

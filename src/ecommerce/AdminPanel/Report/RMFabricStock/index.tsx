@@ -1,125 +1,119 @@
-import { useState } from "react";
-import Button from "@/components/Base/Button";
-import Table from "@/components/Base/Table";
+import { useState, useRef, useEffect, createRef } from "react";
 import { FormInput } from "@/components/Base/Form";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
+import "@/assets/css/vendors/tabulator.css";
 import ViewRM from "./ViewRM";
 
 function Main() {
+  const tableRef = createRef<HTMLDivElement>();
+  const tabulator = useRef<Tabulator | null>(null);
+
   const [searchTerm, setSearchTerm] = useState("");
-const [detailData, setDetailData] = useState<any[]>([]);
-const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-
-
+  const [detailData, setDetailData] = useState<any[]>([]);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const [tableData, setTableData] = useState([
-    { id: 1, Fabric: "PVC RESIN PAWDER", MTR: "", Difference:""},
-    { id: 2, Fabric: "PVC RESIN PAWDER", MTR: "", Difference:""},
-    { id: 3, Fabric: "PVC RESIN PAWDER", MTR: "", Difference:"" },
+    { id: 1, Fabric: "PVC RESIN PAWDER", MTR: "", Difference: "" },
+    { id: 2, Fabric: "PVC RESIN PAWDER", MTR: "", Difference: "" },
+    { id: 3, Fabric: "PVC RESIN PAWDER", MTR: "", Difference: "" },
   ]);
 
+  useEffect(() => {
+    if (!tableRef.current) return;
 
+    // Initialize Tabulator
+    tabulator.current = new Tabulator(tableRef.current, {
+      data: tableData,
+      layout: "fitColumns",
+      responsiveLayout: "collapse",
+      placeholder: "No matching records found",
+      pagination: true,
+      paginationSize: 5,
+      paginationSizeSelector: [5, 10, 20],
 
+      columns: [
+        { title: "Sr.No", formatter: "rownum", hozAlign: "center", width: 70 },
+        { title: "Fabric", field: "Fabric" },
+        { title: "MTR", field: "MTR" },
+        { title: "Difference", field: "Difference" },
+        {
+          title: "Action",
+          hozAlign: "center",
+          formatter: (cell) => {
+            const button = document.createElement("button");
+            button.innerText = "View";
+            button.className =
+              "bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded text-sm";
+            button.onclick = () => {
+              // Replace with real fetched data if needed
+              setDetailData([
+                {
+                  Supplier: "201",
+                  ReceivedMTR: "PVC Resin",
+                  BatchingMTR: 100,
+                  ProductionMTR: 50,
+                  Balance: "",
+                },
+                {
+                  Supplier: "202",
+                  ReceivedMTR: "PVC Resin",
+                  BatchingMTR: 150,
+                  ProductionMTR: 60,
+                  Balance: "",
+                },
+              ]);
+              setIsViewModalOpen(true);
+            };
+            return button;
+          },
+          width: 100,
+        },
+      ],
+    });
 
-  const handleDelete = (id: number) => {
-    setTableData((prev) => prev.filter((row) => row.id !== id));
+    return () => {
+      tabulator.current?.destroy();
+      tabulator.current = null;
+    };
+  }, [tableData]);
+
+  // Live search filter
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    tabulator.current?.setFilter("Fabric", "like", value);
   };
-
-  const filteredData = tableData.filter((row) =>
-    row.Fabric.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <>
-      
       <div className="flex items-center justify-between mt-8 mb-4">
         <h2 className="text-lg font-medium">Fabric Difference</h2>
       </div>
 
-
       <div className="p-5 box">
-
-        <div className="flex items-center mb-3">
-          <span className="mr-2 font-medium">Search:</span>
+        <div className="flex items-center mb-3 gap-2">
+          <span className="font-medium">Search:</span>
           <FormInput
             type="text"
+            placeholder="Search by Fabric..."
             className="w-64"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
 
-
-        <div className="overflow-x-auto">
-          <Table striped>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th className="whitespace-nowrap text-center">Sr.No</Table.Th>
-                <Table.Th className="whitespace-nowrap">Fabric</Table.Th>
-                <Table.Th className="whitespace-nowrap">MTR</Table.Th>
-                <Table.Th className="whitespace-nowrap">Difference</Table.Th>
-
-                <Table.Th className="whitespace-nowrap text-center">Action</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-
-            <Table.Tbody>
-              {filteredData.map((row, index) => (
-                <Table.Tr key={row.id}>
-                  <Table.Td className="text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <span>{index + 1}</span>
-                    </div>
-                  </Table.Td>
-                  <Table.Td>{row.Fabric}</Table.Td>
-                  <Table.Td>{row.MTR}</Table.Td>
-                  <Table.Td>{row.Difference}</Table.Td>
-
-                  <Table.Td className="text-center">
-                    <div className="flex justify-center gap-2">
-                      <Button
-  as="a"
-  variant="primary"
-  href="#"
-  className="inline-block w-24 mb-2 mr-1"
-  onClick={(e) => {
-    e.preventDefault();
-
-    // Example data, replace with real fetched data if needed
-    setDetailData([
-      { Supplier: "201", ReceivedMTR: "PVC Resin", BatchingMTR: 100, ProductionMTR: 50, Balence:"" },
-         { Supplier: "201", ReceivedMTR: "PVC Resin", BatchingMTR: 100, ProductionMTR: 50, Balence:"" },
-
-
-    ]);
-
-    setIsViewModalOpen(true);
-  }}
->
-  View
-</Button>
-
-
-                      
-                    </div>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </div>
+        <div
+          ref={tableRef}
+          style={{ overflowX: "auto", overflowY: "auto" }}
+        ></div>
       </div>
-<ViewRM
-  isOpen={isViewModalOpen}
-  onClose={() => setIsViewModalOpen(false)}
-  data={detailData}
-/>
 
-   
+      <ViewRM
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        data={detailData}
+      />
     </>
   );
 }
 
-
 export default Main;
-
-

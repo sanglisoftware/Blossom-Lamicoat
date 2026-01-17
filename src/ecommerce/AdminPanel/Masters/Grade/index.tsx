@@ -1,159 +1,201 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, createRef } from "react";
 import Button from "@/components/Base/Button";
-import Table from "@/components/Base/Table";
-import { FormInput } from "@/components/Base/Form";
+import { createIcons, icons } from "lucide";
+import { TabulatorFull as Tabulator } from "tabulator-tables";
 import AddGrade from "./AddGrade";
 import EditGrade from "./EditGrade";
+import "@/assets/css/vendors/tabulator.css";
+import { FormInput } from "@/components/Base/Form";
 
-
-
+interface Grade {
+  id: number;
+  Name: string;
+}
 
 function Main() {
+  const tableRef = createRef<HTMLDivElement>();
+  const tabulator = useRef<Tabulator | null>(null);
+
   const [addNewGradeModal, setAddNewGradeModal] = useState(false);
   const [editGradeModal, setEditGradeModal] = useState(false);
-  const [GradeToEdit, setGradeToEdit] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [GradeToEdit, setGradeToEdit] = useState<Grade | null>(null);
 
-  const [GradetableData, setGradeTableData] = useState([
+  const [searchTerm, setSearchTerm] = useState("");
+  const searchRef = useRef(searchTerm);
+  const [filterValue, setFilterValue] = useState("");
+  const filterValueRef = useRef(filterValue);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const [GradetableData, setGradeTableData] = useState<Grade[]>([
     { id: 1, Name: "xyz" },
     { id: 2, Name: "abc" },
     { id: 3, Name: "qwe" },
   ]);
 
-   const handleGrade = (data: { Name: string }) => {
-  setGradeTableData((prev) => [
-    ...prev,
-    {
-      id: prev.length + 1,
-      Name: data.Name,
-    },
-  ]);
-};
+  useEffect(() => {
+    searchRef.current = searchTerm;
+  }, [searchTerm]);
 
+  /* ================= TABULATOR INIT ================= */
+  useEffect(() => {
+    if (!tableRef.current) return;
 
-  const handleUpdatGrade = (data: {
-    id: number;
-    Name: string;
-  
-  }) => {
-    setGradeTableData((prev) =>
-      prev.map((row) => (row.id === data.id ? data : row))
-    );
+    tabulator.current = new Tabulator(tableRef.current, {
+      data: GradetableData,
+      layout: "fitColumns",
+      responsiveLayout: "collapse",
+      placeholder: "No matching records found",
+      pagination: true,
+      paginationSize: 10,
+      paginationSizeSelector: [10, 20, 30, 40],
+
+      columns: [
+        {
+          title: "Sr.No",
+          formatter: "rownum",
+          width: 80,
+          hozAlign: "center",
+        },
+        {
+          title: "Name",
+          field: "Name",
+         minWidth: 200, hozAlign: "center", headerHozAlign: "center",
+        },
+        {
+          title: "Actions",
+          width: 180,
+          hozAlign: "center",
+          headerHozAlign: "center",
+          formatter(cell) {
+            const container = document.createElement("div");
+            container.className = "flex justify-center items-center gap-2";
+
+            const rowData: Grade = cell.getRow().getData();
+
+            const actions = [
+              {
+                label: "Edit",
+                icon: "check-square",
+                classes: "bg-green-100 hover:bg-green-200 text-green-800",
+                onClick: () => {
+                  setGradeToEdit(rowData);
+                  setEditGradeModal(true);
+                },
+              },
+              {
+                label: "Delete",
+                icon: "trash-2",
+                classes: "bg-red-100 hover:bg-red-200 text-red-800",
+                onClick: () => {
+                  if (confirm("Are you sure you want to delete this record?")) {
+                    setGradeTableData((prev) =>
+                      prev.filter((r) => r.id !== rowData.id)
+                    );
+                  }
+                },
+              },
+            ];
+
+            actions.forEach(({ label, icon, classes, onClick }) => {
+              const button = document.createElement("a");
+              button.href = "javascript:;";
+              button.className = `inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes}`;
+              button.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
+              button.addEventListener("click", (e) => {
+                e.stopPropagation();
+                onClick();
+              });
+              container.appendChild(button);
+            });
+
+            return container;
+          },
+        },
+      ],
+    });
+
+    tabulator.current.on("renderComplete", () => {
+      createIcons({
+        icons,
+        attrs: { "stroke-width": 1.5 },
+        nameAttr: "data-lucide",
+      });
+    });
+
+    return () => tabulator.current?.destroy();
+  }, []);
+
+  /* ================= SYNC DATA ================= */
+  useEffect(() => {
+    tabulator.current?.replaceData(GradetableData);
+  }, [GradetableData]);
+
+  /* ================= SEARCH ================= */
+  const handleFilterChange = (value: string) => {
+    setFilterValue(value);
+
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+
+    debounceTimeout.current = setTimeout(() => {
+      if (tabulator.current) {
+        const filtered = GradetableData.filter((row) =>
+          row.Name.toLowerCase().includes(filterValueRef.current.toLowerCase())
+        );
+        tabulator.current.replaceData(filtered);
+      }
+    }, 300);
   };
 
-
-  const handleDelete = (id: number) => {
-    setGradeTableData((prev) => prev.filter((row) => row.id !== id));
-  };
-
-  const filteredData = GradetableData.filter((row) =>
-    row.Name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <>
+      {/* Header */}
       <div className="flex items-center justify-between mt-8 mb-4">
         <h2 className="text-lg font-medium">Grade Table</h2>
-        <Button
-          as="a"
-          variant="primary"
-          href="#"
-          className="inline-block px-5 shadow-md"
-          onClick={(e) => {
-            e.preventDefault();
-            setAddNewGradeModal(true);
-          }}
-        >
+        <Button variant="primary" onClick={() => setAddNewGradeModal(true)}>
           Add Grade
         </Button>
       </div>
 
+      {/* Search + Table */}
       <div className="p-5 box">
-        <div className="flex items-center mb-3">
+       <div className="flex items-center mb-3">
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Enter name..."
+            placeholder="Search ..."
             className="w-64"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filterValue}
+            onChange={(e) => handleFilterChange(e.target.value)}
           />
         </div>
 
         <div className="overflow-x-auto">
-          <Table striped>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th className="whitespace-nowrap text-center">
-                  Sr.No
-                </Table.Th>
-                <Table.Th className="whitespace-nowrap">
-                  Name
-                </Table.Th>
-                <Table.Th className="whitespace-nowrap text-center">
-                  Actions
-                </Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-
-            <Table.Tbody>
-              {filteredData.map((row, index) => (
-                <Table.Tr key={row.id}>
-                  <Table.Td className="text-center">
-                    {index + 1}
-                  </Table.Td>
-
-                  <Table.Td>
-                    {row.Name}
-                  </Table.Td>
-
-                  <Table.Td className="text-center">
-                    <div className="flex justify-center gap-2">
-                      <Button
-                        as="a"
-                        variant="primary"
-                        href="#"
-                        className="inline-block w-24 mb-2"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setGradeToEdit(row);
-                          setEditGradeModal(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-
-                      <Button
-                        as="a"
-                        variant="danger"
-                        href="#"
-                        className="inline-block w-24 mb-2"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleDelete(row.id);
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+          <div ref={tableRef}></div>
         </div>
       </div>
-       <AddGrade
+
+      {/* Modals */}
+      <AddGrade
         open={addNewGradeModal}
         onClose={() => setAddNewGradeModal(false)}
-        onAddGrade={handleGrade}
+        onAddGrade={(data) =>
+          setGradeTableData((prev) => [
+            ...prev,
+            { id: prev.length + 1, ...data },
+          ])
+        }
       />
 
       <EditGrade
         open={editGradeModal}
         onClose={() => setEditGradeModal(false)}
         GradeData={GradeToEdit}
-        onUpdateGrade={handleUpdatGrade}
+        onUpdateGrade={(data) =>
+          setGradeTableData((prev) =>
+            prev.map((row) => (row.id === data.id ? data : row))
+          )
+        }
       />
     </>
   );
