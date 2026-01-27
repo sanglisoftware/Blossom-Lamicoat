@@ -6,8 +6,11 @@ import { TabulatorFull as Tabulator } from "tabulator-tables";
 import CreateNewChemical from "./CreateNewChemical";
 import EditChemical from "./EditChemical";
 import "@/assets/css/vendors/tabulator.css";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
 
 function Main() {
+  const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator>();
 
@@ -17,135 +20,137 @@ function Main() {
 
   const [addNewChemicalModal, setAddNewChemicalModal] = useState(false);
   const [editChemicalModal, setEditChemicalModal] = useState(false);
-  const [editingChemical, setEditingChemical] = useState<any>(null);
-
-  // Static chemical data
-  const [tableData, setTableData] = useState([
-    { id: 1, Name: "PVC RESIN PAWDER", type: "Polymer", comments: "High grade" },
-    { id: 2, Name: "DOP P 80", type: "Plasticizer", comments: "" },
-    { id: 3, Name: "CPW 52 AD", type: "Additive", comments: "Use carefully" },
-  ]);
+  const [editingChemicalId, setEditingChemicalId] = useState<number | null>(null);
 
   useEffect(() => {
     filterValueRef.current = filterValue;
   }, [filterValue]);
 
   const initTabulator = () => {
-    if (tableRef.current) {
-     tabulator.current = new Tabulator(tableRef.current, {
-    data: tableData, // static data
-    layout: "fitColumns",
-    responsiveLayout: "collapse",
-    placeholder: "No matching records found",
-    pagination: true,
-    paginationSize: 10,
-    paginationSizeSelector: [10, 20, 30, 40],
-    // paginationPosition: "bottom",
-    // paginationCounter: "rows",
-        columns: [
-          { title: "Sr.No", hozAlign: "center", formatter: "rownum", width: 80 },
-          { title: "Name", field: "Name", minWidth: 200 },
-          { title: "Type", field: "type", minWidth: 150 },
-          { title: "Comments", field: "comments", minWidth: 200 },
-          
-         {
-    title: "ACTIONS",
-    minWidth: 150,
-    field: "actions",
-    responsive: 1,
-    hozAlign: "center",
-    headerHozAlign: "center",
-    vertAlign: "middle",
-    print: false,
-    download: false,
-    formatter(cell) {
-        const container = document.createElement("div");
-        container.className = "flex justify-end items-center gap-2";
+    if (!tableRef.current) return;
 
-        const rowData = cell.getRow().getData();
+    tabulator.current = new Tabulator(tableRef.current, {
+      ajaxURL: `${BASE_URL}/api/chemical`, 
+      ajaxConfig: {
+        method: "GET",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      },
+      ajaxParams: () => {
+        const page = tabulator.current?.getPage() || 1;
+        const size = tabulator.current?.getPageSize() || 10;
 
-        const actions = [
-            {
+        const params: any = { page, size };
+        if (filterValueRef.current) {
+          params["filter[0][type]"] = "like";
+          params["filter[0][value]"] = filterValueRef.current;
+        }
+        return params;
+      },
+      ajaxResponse: (url, params, response) => {
+        return {
+          last_page: Math.ceil(response.totalCount / (params.size || 10)),
+          data: response.items,
+        };
+      },
+      ajaxContentType: "json",
+      pagination: true,
+      paginationMode: "remote",
+      filterMode: "remote",
+      sortMode: "remote",
+      layout: "fitColumns",
+      responsiveLayout: "collapse",
+      placeholder: "No matching records found",
+      paginationSize: 10,
+      paginationSizeSelector: [10, 20, 30, 50],
+      columns: [
+        { title: "Sr.No", hozAlign: "center", formatter: "rownum", width: 80 },
+        { title: "Name", field: "name", minWidth: 200 },
+        { title: "Type", field: "type", minWidth: 150 },
+        { title: "Comment", field: "comment", minWidth: 200 },
+        {
+          title: "Is Active",
+          field: "isActive",
+          hozAlign: "left",
+          minWidth: 100,
+          formatter: (cell) => (cell.getValue() ? "Yes" : "No"),
+        },
+        {
+          title: "Actions",
+          field: "actions",
+          hozAlign: "center",
+          minWidth: 150,
+          formatter: (cell) => {
+            const container = document.createElement("div");
+            container.className = "flex justify-end items-center gap-2";
+
+            const rowData = cell.getRow().getData();
+            const actions = [
+              {
                 label: "Edit",
                 icon: "check-square",
                 classes: "bg-green-100 hover:bg-green-200 text-green-800",
                 onClick: () => {
-                    setEditingChemical(rowData);
-                    setEditChemicalModal(true);
+                  setEditingChemicalId(rowData.id);
+                  setEditChemicalModal(true);
                 },
-            },
-            {
+              },
+              {
                 label: "Delete",
                 icon: "trash-2",
                 classes: "bg-red-100 hover:bg-red-200 text-red-800",
-                onClick: () => {
-                    if (confirm("Are you sure you want to delete this chemical?")) {
-                        setTableData((prev) => prev.filter((r) => r.id !== rowData.id));
-                    }
+                onClick: async () => {
+                  if (!confirm("Are you sure you want to delete this chemical?")) return;
+                  await axios.delete(`${BASE_URL}/api/chemical/${rowData.id}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  refreshTable();
                 },
-            },
-        ];
+              },
+            ];
 
-        actions.forEach(({ label, icon, classes, onClick }) => {
-            const button = document.createElement("a");
-            button.href = "javascript:;";
-            button.className = `action-btn inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes} transition-colors`;
-            button.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
-            button.addEventListener("click", (e) => {
+            actions.forEach(({ label, icon, classes, onClick }) => {
+              const btn = document.createElement("a");
+              btn.href = "javascript:;";
+              btn.className = `action-btn inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes}`;
+              btn.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
+              btn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 onClick();
+              });
+              container.appendChild(btn);
             });
-            container.appendChild(button);
-        });
+            return container;
+          },
+        },
+      ],
+    });
 
-        return container;
-    },
-},
-
-
-        ],
-      });
-
-      tabulator.current.on("renderComplete", () => {
-        createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
-      });
-    }
+    tabulator.current.on("renderComplete", () => {
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
+    });
   };
 
   const refreshTable = () => {
-    if (tabulator.current) {
-      tabulator.current.replaceData(tableData);
-    }
+    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
   };
 
   const handleFilterChange = (value: string) => {
     setFilterValue(value);
-
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-
     debounceTimeout.current = setTimeout(() => {
-      if (tabulator.current) {
-        const filtered = tableData.filter((row) =>
-          row.Name.toLowerCase().includes(filterValueRef.current.toLowerCase())
-        );
-        tabulator.current.replaceData(filtered);
-      }
+      refreshTable();
     }, 300);
   };
 
   useEffect(() => {
     initTabulator();
-    window.addEventListener("resize", () => {
-      if (tabulator.current) {
-        tabulator.current.redraw();
-        createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
-      }
-    });
-
-    return () => {
-      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    const handleResize = () => {
+      tabulator.current?.redraw();
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     };
-  }, [tableData]);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <>
@@ -173,34 +178,20 @@ function Main() {
         </div>
       </div>
 
-      {/* Modals */}
       <CreateNewChemical
         open={addNewChemicalModal}
         onClose={() => setAddNewChemicalModal(false)}
-        onAddChemical={(newData: any) => {
-          setTableData((prev) => [...prev, { id: prev.length + 1, ...newData }]);
-          refreshTable();
-        }}
+        onSuccess={refreshTable} 
       />
 
       <EditChemical
         open={editChemicalModal}
+        chemicalId={editingChemicalId}
         onClose={() => setEditChemicalModal(false)}
-        chemicalData={editingChemical}
-        onUpdateChemical={(updated: any) => {
-          setTableData((prev) =>
-            prev.map((row) => (row.id === updated.id ? updated : row))
-          );
-          refreshTable();
-        }}
+        onSuccess={refreshTable} 
       />
     </>
   );
 }
 
 export default Main;
-
-
-
-
-

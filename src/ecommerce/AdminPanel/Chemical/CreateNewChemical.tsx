@@ -1,145 +1,161 @@
+import { useState } from "react";
 import Button from "@/components/Base/Button";
 import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
+import SuccessModal from "../CommonModals/SuccessModal/SuccessModal";
+import { SuccessModalConfig } from "../CommonModals/SuccessModal/SuccessModalConfig";
 
 interface CreateNewChemicalModalProps {
   open: boolean;
   onClose: () => void;
-  onAddChemical: (data: {
-    chemicalName: string;
-    type: string;
-    comments: string;
-  }) => void;
+  onSuccess: () => void; 
 }
-
-const schema = yup.object({
-  chemicalName: yup
-    .string()
-    .required("Chemical name is required"),
-
-  type: yup
-    .string()
-    .required("Type is required"),
-
-  comments: yup
-    .string()
-    .required("Comments are required"),
-});
 
 const CreateNewChemical: React.FC<CreateNewChemicalModalProps> = ({
   open,
   onClose,
-  onAddChemical,
+  onSuccess,
 }) => {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    mode: "onChange",
-    resolver: yupResolver(schema),
+  const token = localStorage.getItem("token");
+
+  const [formData, setFormData] = useState({
+    chemicalName: "",
+    type: "",
+    comments: "",
   });
 
-  const onSubmit = (data: any) => {
-    onAddChemical(data);
-    reset();
-    onClose();
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalConfig, setSuccessModalConfig] =
+    useState<SuccessModalConfig>({
+      title: "",
+      subtitle: "",
+      icon: "CheckCircle",
+      buttonText: "OK",
+      onButtonClick: () => {},
+    });
+
+  const clearFormData = () =>
+    setFormData({ chemicalName: "", type: "", comments: "" });
+
+  const handleSubmit = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.chemicalName) errors.chemicalName = "Chemical name is required";
+    if (!formData.type) errors.type = "Type is required";
+    if (!formData.comments) errors.comments = "Comments are required";
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      const payload = {
+        name: formData.chemicalName,
+        type: formData.type,
+        comment: formData.comments,
+        isActive: 1,
+      };
+
+      const response = await axios.post(`${BASE_URL}/api/chemical`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        clearFormData();
+        setFormErrors({});
+        onClose();
+
+        setSuccessModalConfig({
+          title: "Chemical Created Successfully",
+          subtitle: "The new chemical has been added to the system.",
+          icon: "CheckCircle",
+          buttonText: "OK",
+          onButtonClick: () => setIsSuccessModalOpen(false),
+        });
+
+        setIsSuccessModalOpen(true);
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Chemical submit error:", error);
+      alert(error.response?.data?.detail || "Something went wrong");
+    }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} staticBackdrop size="md">
-      <Dialog.Panel>
-        <Dialog.Title>
-          <h2 className="text-base font-medium">Create New Chemical</h2>
-        </Dialog.Title>
+    <>
+      <Dialog open={open} onClose={onClose} staticBackdrop size="md">
+        <Dialog.Panel>
+          <Dialog.Title>
+            <h2 className="text-base font-medium">Create New Chemical</h2>
+          </Dialog.Title>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
           <Dialog.Description className="space-y-4">
-            {/* Chemical Name */}
             <div>
               <FormLabel>Chemical Name</FormLabel>
               <FormInput
                 type="text"
                 placeholder="Enter Chemical Name"
-                {...register("chemicalName")}
+                value={formData.chemicalName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, chemicalName: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, chemicalName: "" }));
+                }}
               />
-              {errors.chemicalName && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.chemicalName.message}
-                </p>
-              )}
+              {formErrors.chemicalName && <p className="text-sm text-red-500">{formErrors.chemicalName}</p>}
             </div>
 
-            {/* Type */}
             <div>
               <FormLabel>Type</FormLabel>
               <FormInput
                 type="text"
                 placeholder="Enter Type"
-                {...register("type")}
+                value={formData.type}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, type: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, type: "" }));
+                }}
               />
-              {errors.type && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.type.message}
-                </p>
-              )}
+              {formErrors.type && <p className="text-sm text-red-500">{formErrors.type}</p>}
             </div>
 
-            {/* Comments */}
             <div>
               <FormLabel>Comments</FormLabel>
               <FormInput
                 type="text"
                 placeholder="Enter Comments"
-                {...register("comments")}
+                value={formData.comments}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, comments: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, comments: "" }));
+                }}
               />
-              {errors.comments && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.comments.message}
-                </p>
-              )}
+              {formErrors.comments && <p className="text-sm text-red-500">{formErrors.comments}</p>}
             </div>
           </Dialog.Description>
 
           <Dialog.Footer>
-            {/* <Button
-              type="button"
-              variant="outline-secondary"
-              className="w-24 mr-2"
-              onClick={onClose}
-            >
+            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
               Cancel
-            </Button> */}
-            <Button
-  type="button"
-  variant="secondary"
-  className="w-24 mb-2 mr-1"
-  onClick={onClose}
->
-  Cancel
-</Button>
-
-
-            {/* <Button
-              type="submit"
-              variant="primary"
-              className="w-24 bg-blue-600 hover:bg-blue-700"
-            >
+            </Button>
+            <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
               Add
-            </Button> */}
-             <Button variant="primary" className="w-24 mb-2 mr-1">
-        Add
-    </Button>
+            </Button>
           </Dialog.Footer>
-        </form>
-      </Dialog.Panel>
-    </Dialog>
+        </Dialog.Panel>
+      </Dialog>
+
+      <SuccessModal
+        open={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        {...successModalConfig}
+      />
+    </>
   );
-  
 };
 
 export default CreateNewChemical;
