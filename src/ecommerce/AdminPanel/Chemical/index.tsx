@@ -8,19 +8,30 @@ import EditChemical from "./EditChemical";
 import "@/assets/css/vendors/tabulator.css";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
+import { Dialog } from "@/components/Base/Headless";
+import Lucide from "@/components/Base/Lucide";
 
 function Main() {
   const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator>();
 
+  const searchValueRef = useRef(""); // only updated when debounce triggers
+const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
   const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
 
   const [addNewChemicalModal, setAddNewChemicalModal] = useState(false);
   const [editChemicalModal, setEditChemicalModal] = useState(false);
   const [editingChemicalId, setEditingChemicalId] = useState<number | null>(null);
+
+  const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
+  const [deleteChemicalId, setDeleteChemicalId] = useState<number | null>(null);
+  const deleteButtonRef = useRef(null);
 
   useEffect(() => {
     filterValueRef.current = filterValue;
@@ -30,7 +41,7 @@ function Main() {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      ajaxURL: `${BASE_URL}/api/chemical`, 
+      ajaxURL: `${BASE_URL}/api/chemical`,
       ajaxConfig: {
         method: "GET",
         headers: { Authorization: token ? `Bearer ${token}` : "" },
@@ -67,21 +78,16 @@ function Main() {
         { title: "Name", field: "name", minWidth: 200 },
         { title: "Type", field: "type", minWidth: 150 },
         { title: "Comment", field: "comment", minWidth: 200 },
-        {
-          title: "Is Active",
-          field: "isActive",
-          hozAlign: "left",
-          minWidth: 100,
-          formatter: (cell) => (cell.getValue() ? "Yes" : "No"),
-        },
+
         {
           title: "Actions",
           field: "actions",
-          hozAlign: "center",
+          hozAlign: "left",
+          headerHozAlign: "left",
           minWidth: 150,
           formatter: (cell) => {
             const container = document.createElement("div");
-            container.className = "flex justify-end items-center gap-2";
+container.className = "flex justify-start items-center space-x-2";
 
             const rowData = cell.getRow().getData();
             const actions = [
@@ -97,13 +103,11 @@ function Main() {
               {
                 label: "Delete",
                 icon: "trash-2",
+                action: "delete",
                 classes: "bg-red-100 hover:bg-red-200 text-red-800",
-                onClick: async () => {
-                  if (!confirm("Are you sure you want to delete this chemical?")) return;
-                  await axios.delete(`${BASE_URL}/api/chemical/${rowData.id}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                  });
-                  refreshTable();
+                onClick: () => {
+                  setDeleteChemicalId(rowData.id);
+                  setDeleteConfirmationModal(true);
                 },
               },
             ];
@@ -134,12 +138,48 @@ function Main() {
     tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
   };
 
-  const handleFilterChange = (value: string) => {
-    setFilterValue(value);
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-    debounceTimeout.current = setTimeout(() => {
+const handleFilterChange = (value: string) => {
+  setFilterValue(value);
+
+  if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+  
+  searchTimeout.current = setTimeout(() => {
+    searchValueRef.current = value.trim();
+
+    if (tabulator.current) {
+      tabulator.current.setData(`${BASE_URL}/api/chemical`, {
+        params: {
+          page: 1,
+          size: tabulator.current.getPageSize() || 10,
+          ...(searchValueRef.current
+            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
+            : {}),
+        },
+      });
+    }
+  }, 600);
+};
+
+
+
+
+
+  const handleDeleteChemical = async () => {
+    if (!deleteChemicalId) return;
+
+    try {
+      await axios.delete(`${BASE_URL}/api/chemical/${deleteChemicalId}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      setDeleteConfirmationModal(false);
+      setDeleteChemicalId(null);
       refreshTable();
-    }, 300);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete chemical");
+    }
   };
 
   useEffect(() => {
@@ -174,24 +214,63 @@ function Main() {
         </div>
 
         <div className="overflow-x-auto">
-          <div id="tabulator" ref={tableRef}></div>
+          <div ref={tableRef}></div>
         </div>
       </div>
 
       <CreateNewChemical
         open={addNewChemicalModal}
         onClose={() => setAddNewChemicalModal(false)}
-        onSuccess={refreshTable} 
+        onSuccess={refreshTable}
       />
 
       <EditChemical
         open={editChemicalModal}
         chemicalId={editingChemicalId}
         onClose={() => setEditChemicalModal(false)}
-        onSuccess={refreshTable} 
+        onSuccess={refreshTable}
       />
+
+      <Dialog
+        open={deleteConfirmationModal}
+        onClose={() => setDeleteConfirmationModal(false)}
+        initialFocus={deleteButtonRef}
+      >
+        <Dialog.Panel>
+          <div className="p-5 text-center">
+            <Lucide icon="Trash" className="w-16 h-16 mx-auto mt-3 text-danger" />
+            <div className="mt-5 text-3xl">Are you sure?</div>
+            <div className="mt-2 text-slate-500">
+              Do you really want to <span className="text-danger">delete</span> this chemical?
+            </div>
+          </div>
+          <div className="px-5 pb-8 text-center">
+            <Button
+              variant="outline-secondary"
+              type="button"
+              onClick={() => setDeleteConfirmationModal(false)}
+              className="w-24 mr-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              type="button"
+              className="w-24"
+              ref={deleteButtonRef}
+              onClick={handleDeleteChemical}
+            >
+              Delete
+            </Button>
+          </div>
+        </Dialog.Panel>
+      </Dialog>
     </>
   );
 }
 
 export default Main;
+
+
+
+
