@@ -99,6 +99,7 @@ container.className = "flex justify-start items-center space-x-2";
                   setEditingChemicalId(rowData.id);
                   setEditChemicalModal(true);
                 },
+                
               },
               {
                 label: "Delete",

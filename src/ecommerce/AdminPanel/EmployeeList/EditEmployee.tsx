@@ -64,7 +64,8 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                         password: employee.password,
                         confirmPassword: employee.password,
                         isActive: employee.activeStatus === 1,
-                        type: employee.type
+                        type: employee.type === 0 ? "Staff" : employee.type === 1 ? "Worker" : "",
+
                     });
                 } catch (error) {
                     console.error("Error fetching collection:", error);
@@ -105,7 +106,7 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
         userName: "",
         password: "",
         confirmPassword: "",
-        type:"",
+        type: "",
         isActive: true
     })
 
@@ -168,7 +169,7 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
             username: formData.userName,
             activeStatus: formData.isActive ? 1 : 0,
             password: formData.password,
-            type: formData.type
+            type: formData.type.toLowerCase() === "worker" ? 1 : 0,
         }
 
 
@@ -334,41 +335,41 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                         </div>
 
                         <div className="col-span-12 sm:col-span-4">
-                          <FormLabel>Type</FormLabel>
-                        
-                          <div className="mt-2 flex gap-6">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="type"
-                                value="Staff"
-                                checked={formData.type === "Staff"}
-                                onChange={(e) => {
-                                  setFormData({ ...formData, type: e.target.value });
-                                  setFormErrors((prev) => ({ ...prev, type: "" }));
-                                }}
-                              />
-                              <span>Staff</span>
-                            </label>
-                        
-                            <label className="flex items-center gap-2 cursor-pointer">
-                              <input
-                                type="radio"
-                                name="type"
-                                value="Worker"
-                                checked={formData.type === "Worker"}
-                                onChange={(e) => {
-                                  setFormData({ ...formData, type: e.target.value });
-                                  setFormErrors((prev) => ({ ...prev, type: "" }));
-                                }}
-                              />
-                              <span>Worker</span>
-                            </label>
-                          </div>
-                        
-                          {formErrors.userName && (
-                            <p className="text-red-500 text-sm mt-1">{formErrors.type}</p>
-                          )}
+                            <FormLabel>Type</FormLabel>
+
+                            <div className="mt-2 flex gap-6">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="type"
+                                        value="Staff"
+                                        checked={formData.type === "Staff"}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, type: e.target.value });
+                                            setFormErrors((prev) => ({ ...prev, type: "" }));
+                                        }}
+                                    />
+                                    <span>Staff</span>
+                                </label>
+
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="type"
+                                        value="Worker"
+                                        checked={formData.type === "Worker"}
+                                        onChange={(e) => {
+                                            setFormData({ ...formData, type: e.target.value });
+                                            setFormErrors((prev) => ({ ...prev, type: "" }));
+                                        }}
+                                    />
+                                    <span>Worker</span>
+                                </label>
+                            </div>
+
+                            {formErrors.type && (
+                                <p className="text-red-500 text-sm mt-1">{formErrors.type}</p>
+                            )}
                         </div>
                         <div className="col-span-12 sm:col-span-4">
                             <FormLabel htmlFor="userName">User Name</FormLabel>

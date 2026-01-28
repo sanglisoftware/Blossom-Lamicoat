@@ -207,24 +207,24 @@ function Main() {
                         },
                     },
                     {
-  title: "Type",
-  minWidth: 150,
-  responsive: 0,
-  field: "type",
-  vertAlign: "middle",
-  print: false,
-  download: false,
-  formatter(cell) {
-    const response: any = cell.getData(); // ✅ FIX
-    return `
-      <div>
-        <div class="font-medium whitespace-nowrap">
-          ${response.type || "-"}
-        </div>
-      </div>
-    `;
-  },
-},
+                        title: "Type",
+                        minWidth: 150,
+                        responsive: 0,
+                        field: "type",
+                        vertAlign: "middle",
+                        print: false,
+                        download: false,
+                        formatter(cell) {
+                            const response: any = cell.getData(); // ✅ FIX
+                            return `
+                         <div>
+                           <div class="font-medium whitespace-nowrap">
+                             ${response.type === 0 ? "Staff" : response.type === 1 ? "Worker" : "--"}
+                           </div>
+                         </div>
+                       `;
+                        },
+                    },
 
 
                     {
