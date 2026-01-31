@@ -3,90 +3,120 @@ import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config"
+import { useState } from "react";
+import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
+import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
 
 interface CreateNewCustomerModalProps {
   open: boolean;
   onClose: () => void;
-  onAddCustomer: (data: {
-    Name: string;
-    Address: string;
-    MobileNo: string;
-     Email: string;
-    GSTNo: string;
-  }) => void;
+  onSuccess: () => void; 
 }
 
-const schema = yup.object({
-  Name: yup
-    .string()
-    .required(" name is required")
-    .min(2, "Minimum 2 characters"),
-
-  Address: yup
-    .string()
-    .required("Address is required")
-    .min(2, "Minimum 2 characters"),
-
-  MobileNo: yup
-    .string()
-    .required("Number required")
-    .min(10, "Minimum 10 digits"),
-
-    Email: yup
-    .string()
-    .required("Email is required")
-    .min(2, "Minimum 2 characters"),
-
-    GSTNo: yup
-    .string()
-    .required("GST No is required")
-    .min(2, "Minimum 2 characters"),
-});
 
 const AddCustomer: React.FC<CreateNewCustomerModalProps> = ({
   open,
   onClose,
-  onAddCustomer,
+  onSuccess,
 }) => {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    mode: "onChange",
-    resolver: yupResolver(schema),
+   const token = localStorage.getItem("token");
+
+  const [formData, setFormData] = useState({
+    Name: "",
+    Address: "",
+    Mobile_No: "",
+    Email: "",
+    GST_No: "",
+
   });
 
-  const onSubmit = (data: any) => {
-    onAddCustomer(data);
-    reset();
-    onClose();
+
+const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalConfig, setSuccessModalConfig] =
+    useState<SuccessModalConfig>({
+      title: "",
+      subtitle: "",
+      icon: "CheckCircle",
+      buttonText: "OK",
+      onButtonClick: () => {},
+    });
+
+  const clearFormData = () =>
+    setFormData({ Name: "",  Address: "",Mobile_No: "", Email: "", GST_No: "", });
+
+  const handleSubmit = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.Name) errors.Name = "Name is required";
+    if (!formData.Address) errors.Address = "Address is required";
+    if (!formData.Mobile_No) errors.Mobile_No = "Mobile_No are required";
+    if (!formData.Email) errors.Email = "Email are required";
+    if (!formData.GST_No) errors.GST_No = "GST_No are required";
+
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      const payload = {
+        Name: formData.Name,
+        Address: formData.Address,
+        Mobile_No: formData.Mobile_No,
+        Email: formData.Email,
+        GST_No: formData.GST_No,
+        isActive: 1,
+      };
+
+      const response = await axios.post(`${BASE_URL}/api/customer`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        clearFormData();
+        setFormErrors({});
+        onClose();
+
+        setSuccessModalConfig({
+          title: "Customer Created Successfully",
+          subtitle: "The new customer has been added to the system.",
+          icon: "CheckCircle",
+          buttonText: "OK",
+          onButtonClick: () => setIsSuccessModalOpen(false),
+        });
+
+        setIsSuccessModalOpen(true);
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Chemical submit error:", error);
+      alert(error.response?.data?.detail || "Something went wrong");
+    }
   };
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} staticBackdrop size="md">
       <Dialog.Panel>
         <Dialog.Title>
           <h2 className="text-base font-medium">Create New Customer</h2>
         </Dialog.Title>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
           <Dialog.Description className="space-y-4">
-            {/* Chemical Name */}
             <div>
               <FormLabel>Customer Name</FormLabel>
               <FormInput
                 type="text"
                 placeholder="Enter Customer Name"
-                {...register("Name")}
+               value={formData.Name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Name: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Name: "" }));
+                }}
               />
-              {errors.Name && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.Name.message}
-                </p>
-              )}
+              {formErrors.Name && <p className="text-sm text-red-500">{formErrors.Name}</p>}
             </div>
 
             {/* Type */}
@@ -95,13 +125,13 @@ const AddCustomer: React.FC<CreateNewCustomerModalProps> = ({
               <FormInput
                 type="text"
                 placeholder="Enter Address"
-                {...register("Address")}
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Address: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Address: "" }));
+                }}
               />
-              {errors.Address && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.Address.message}
-                </p>
-              )}
+              {formErrors.Address && <p className="text-sm text-red-500">{formErrors.Address}</p>}
             </div>
 
             {/* Comments */}
@@ -110,13 +140,13 @@ const AddCustomer: React.FC<CreateNewCustomerModalProps> = ({
               <FormInput
                 type="text"
                 placeholder="Enter number"
-                {...register("MobileNo")}
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Mobile_No: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Mobile_No: "" }));
+                }}
               />
-              {errors.MobileNo && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.MobileNo.message}
-                </p>
-              )}
+              {formErrors.Address && <p className="text-sm text-red-500">{formErrors.Mobile_No}</p>}
             </div>
 
             <div>
@@ -124,13 +154,13 @@ const AddCustomer: React.FC<CreateNewCustomerModalProps> = ({
               <FormInput
                 type="text"
                 placeholder="Enter Email"
-                {...register("MobileNo")}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Email: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Email: "" }));
+                }}
               />
-              {errors.Email && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.Email.message}
-                </p>
-              )}
+              {formErrors.Address && <p className="text-sm text-red-500">{formErrors.Email}</p>}
             </div>
 
             <div>
@@ -138,49 +168,32 @@ const AddCustomer: React.FC<CreateNewCustomerModalProps> = ({
               <FormInput
                 type="text"
                 placeholder="Enter number"
-                {...register("GSTNo")}
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, GST_No: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, GST_No: "" }));
+                }}
               />
-              {errors.GSTNo && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.GSTNo.message}
-                </p>
-              )}
+              {formErrors.Address && <p className="text-sm text-red-500">{formErrors.GST_No}</p>}
             </div>
           </Dialog.Description>
-
-          <Dialog.Footer>
-            {/* <Button
-              type="button"
-              variant="outline-secondary"
-              className="w-24 mr-2"
-              onClick={onClose}
-            >
+ <Dialog.Footer>
+            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
               Cancel
-            </Button> */}
-            <Button
-  type="button"
-  variant="secondary"
-  className="w-24 mb-2 mr-1"
-  onClick={onClose}
->
-  Cancel
-</Button>
-
-
-            {/* <Button
-              type="submit"
-              variant="primary"
-              className="w-24 bg-blue-600 hover:bg-blue-700"
-            >
+            </Button>
+            <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
               Add
-            </Button> */}
-             <Button variant="primary" className="w-24 mb-2 mr-1">
-        Add
-    </Button>
+            </Button>
           </Dialog.Footer>
-        </form>
-      </Dialog.Panel>
-    </Dialog>
+        </Dialog.Panel>
+      </Dialog>
+
+      <SuccessModal
+        open={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        {...successModalConfig}
+      />
+</>
   );
 };
 

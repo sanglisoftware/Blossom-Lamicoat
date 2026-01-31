@@ -74,20 +74,20 @@ const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
       paginationSize: 10,
       paginationSizeSelector: [10, 20, 30, 50],
       columns: [
-        { title: "Sr.No", hozAlign: "center", formatter: "rownum", width: 80 },
-        { title: "Name", field: "name", minWidth: 200 },
-        { title: "Type", field: "type", minWidth: 150 },
-        { title: "Comment", field: "comment", minWidth: 200 },
+        { title: "Sr.No", hozAlign: "center",  headerHozAlign: "center",formatter: "rownum", width: 80 },
+        { title: "Name", hozAlign: "center",  headerHozAlign: "center",field: "name", minWidth: 200 },
+        { title: "Type", hozAlign: "center",  headerHozAlign: "center",field: "type", minWidth: 150 },
+        { title: "Comment", hozAlign: "center",  headerHozAlign: "center",field: "comment", minWidth: 200 },
 
         {
           title: "Actions",
           field: "actions",
-          hozAlign: "left",
-          headerHozAlign: "left",
+          hozAlign: "center",
+          headerHozAlign: "center",
           minWidth: 150,
           formatter: (cell) => {
             const container = document.createElement("div");
-container.className = "flex justify-start items-center space-x-2";
+container.className = "flex justify-center items-center space-x-2";
 
             const rowData = cell.getRow().getData();
             const actions = [

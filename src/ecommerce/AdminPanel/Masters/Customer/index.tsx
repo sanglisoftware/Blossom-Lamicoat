@@ -6,24 +6,31 @@ import { TabulatorFull as Tabulator } from "tabulator-tables";
 import AddCustomer from "./AddCustomer";
 import EditCustomer from "./EditCustomer";
 import "@/assets/css/vendors/tabulator.css";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
+import { Dialog } from "@/components/Base/Headless";
+import Lucide from "@/components/Base/Lucide";
 
 function Main() {
+  const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator>();
 
   const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+const searchValueRef = useRef(""); // only updated when debounce triggers
+const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const [addCustomerModal, setAddCustomerModal] = useState(false);
   const [editCustomerModal, setEditCustomerModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null);
 
-  const [tableData, setTableData] = useState([
-    { id: 1, Name: "username", Address: "", MobileNo: "", Email: "", GSTNo: "" },
-    { id: 2, Name: "username", Address: "", MobileNo: "", Email: "", GSTNo: "" },
-    { id: 3, Name: "username", Address: "", MobileNo: "", Email: "", GSTNo: "" },
-  ]);
+const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
+  const [deleteCustomerId, setDeleteCustomerId] = useState<number | null>(null);
+  const deleteButtonRef = useRef(null);
 
   useEffect(() => {
     filterValueRef.current = filterValue;
@@ -33,26 +40,52 @@ function Main() {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      data: tableData,
+      ajaxURL: `${BASE_URL}/api/customer`,
+      ajaxConfig: {
+        method: "GET",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      },
+      ajaxParams: () => {
+        const page = tabulator.current?.getPage() || 1;
+        const size = tabulator.current?.getPageSize() || 10;
+
+        const params: any = { page, size };
+        if (filterValueRef.current) {
+          params["filter[0][type]"] = "like";
+          params["filter[0][value]"] = filterValueRef.current;
+        }
+        return params;
+      },
+      ajaxResponse: (url, params, response) => {
+        return {
+          last_page: Math.ceil(response.totalCount / (params.size || 10)),
+          data: response.items,
+        };
+      },
+      ajaxContentType: "json",
+      pagination: true,
+      paginationMode: "remote",
+      filterMode: "remote",
+      sortMode: "remote",
       layout: "fitColumns",
       responsiveLayout: "collapse",
       placeholder: "No matching records found",
-      pagination: true,
       paginationSize: 10,
-      paginationSizeSelector: [10, 20, 30, 40],
+      paginationSizeSelector: [10, 20, 30, 50],
 
       columns: [
         {
           title: "Sr.No",
           hozAlign: "center",
+          headerHozAlign: "center",
           formatter: "rownum",
           width: 80,
         },
-        { title: "Name", field: "Name", minWidth: 180 },
-        { title: "Address", field: "Address", minWidth: 200 },
-        { title: "Mobile No", field: "MobileNo", minWidth: 150 },
-        { title: "Email", field: "Email", minWidth: 200 },
-        { title: "GST No", field: "GSTNo", minWidth: 150 },
+        { title: "Name", field: "name", hozAlign: "center",  headerHozAlign: "center",minWidth: 180 },
+        { title: "Address", field: "address", hozAlign: "center",  headerHozAlign: "center",minWidth: 200 },
+        { title: "Mobile No", field: "mobile_No", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
+        { title: "Email", field: "email",hozAlign: "center",  headerHozAlign: "center", minWidth: 200 },
+        { title: "GST No", field: "gsT_No", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
 
         {
           title: "ACTIONS",
@@ -65,7 +98,7 @@ function Main() {
 
           formatter(cell) {
             const container = document.createElement("div");
-            container.className = "flex justify-center gap-2";
+            container.className = "flex justify-center items-center space-x-2";
 
             const rowData = cell.getRow().getData();
 
@@ -76,7 +109,7 @@ function Main() {
                 classes:
                   "bg-green-100 hover:bg-green-200 text-green-800",
                 onClick: () => {
-                  setEditingCustomer(rowData);
+                  setEditingCustomerId(rowData.id);
                   setEditCustomerModal(true);
                 },
               },
@@ -86,11 +119,8 @@ function Main() {
                 classes:
                   "bg-red-100 hover:bg-red-200 text-red-800",
                 onClick: () => {
-                  if (confirm("Are you sure you want to delete this customer?")) {
-                    setTableData((prev) =>
-                      prev.filter((r) => r.id !== rowData.id)
-                    );
-                  }
+                 setDeleteCustomerId(rowData.id);
+                  setDeleteConfirmationModal(true);
                 },
               },
             ];
@@ -114,46 +144,69 @@ function Main() {
         },
       ],
     });
-
-    tabulator.current.on("renderComplete", () => {
-      createIcons({
-        icons,
-        attrs: { "stroke-width": 1.5 },
-        nameAttr: "data-lucide",
-      });
+ tabulator.current.on("renderComplete", () => {
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     });
   };
 
   const refreshTable = () => {
-    tabulator.current?.replaceData(tableData);
+    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
   };
 
-  const handleFilterChange = (value: string) => {
-    setFilterValue(value);
+const handleFilterChange = (value: string) => {
+  setFilterValue(value);
 
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+  if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
-    debounceTimeout.current = setTimeout(() => {
-      if (!tabulator.current) return;
+  
+  searchTimeout.current = setTimeout(() => {
+    searchValueRef.current = value.trim();
 
-      const filtered = tableData.filter((row) =>
-        row.Name.toLowerCase().includes(
-          filterValueRef.current.toLowerCase()
-        )
-      );
+    if (tabulator.current) {
+      tabulator.current.setData(`${BASE_URL}/api/customer`, {
+        params: {
+          page: 1,
+          size: tabulator.current.getPageSize() || 10,
+          ...(searchValueRef.current
+            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
+            : {}),
+        },
+      });
+    }
+  }, 600);
+};
 
-      tabulator.current.replaceData(filtered);
-    }, 300);
+
+
+
+
+  const handleDeleteCustomer = async () => {
+    if (!deleteCustomerId) return;
+
+    try {
+      await axios.delete(`${BASE_URL}/api/customer/${deleteCustomerId}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      setDeleteConfirmationModal(false);
+      setDeleteCustomerId(null);
+      refreshTable();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete customer");
+    }
   };
 
   useEffect(() => {
     initTabulator();
-
-    return () => {
-      debounceTimeout.current &&
-        clearTimeout(debounceTimeout.current);
+    const handleResize = () => {
+      tabulator.current?.redraw();
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     };
-  }, [tableData]);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
 
   return (
     <>
@@ -185,26 +238,49 @@ function Main() {
       <AddCustomer
         open={addCustomerModal}
         onClose={() => setAddCustomerModal(false)}
-        onAddCustomer={(data: any) => {
-          setTableData((prev) => [
-            ...prev,
-            { id: prev.length + 1, ...data },
-          ]);
-          refreshTable();
-        }}
+        onSuccess={refreshTable}
       />
 
       <EditCustomer
         open={editCustomerModal}
+      customerId={editingCustomerId}
         onClose={() => setEditCustomerModal(false)}
-        CustomerData={editingCustomer}
-        onUpdateCustomer={(updated: any) => {
-          setTableData((prev) =>
-            prev.map((r) => (r.id === updated.id ? updated : r))
-          );
-          refreshTable();
-        }}
+        onSuccess={refreshTable}
       />
+      <Dialog
+        open={deleteConfirmationModal}
+        onClose={() => setDeleteConfirmationModal(false)}
+        initialFocus={deleteButtonRef}
+      >
+        <Dialog.Panel>
+          <div className="p-5 text-center">
+            <Lucide icon="Trash" className="w-16 h-16 mx-auto mt-3 text-danger" />
+            <div className="mt-5 text-3xl">Are you sure?</div>
+            <div className="mt-2 text-slate-500">
+              Do you really want to <span className="text-danger">delete</span> this customer?
+            </div>
+          </div>
+          <div className="px-5 pb-8 text-center">
+            <Button
+              variant="outline-secondary"
+              type="button"
+              onClick={() => setDeleteConfirmationModal(false)}
+              className="w-24 mr-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              type="button"
+              className="w-24"
+              ref={deleteButtonRef}
+              onClick={handleDeleteCustomer}
+            >
+              Delete
+            </Button>
+          </div>
+        </Dialog.Panel>
+      </Dialog>
     </>
   );
 }
