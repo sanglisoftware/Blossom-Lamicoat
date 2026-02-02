@@ -1,214 +1,278 @@
 import { useState, useRef, useEffect, createRef } from "react";
 import Button from "@/components/Base/Button";
-import "@/assets/css/vendors/tabulator.css";
 import { FormInput } from "@/components/Base/Form";
-import { createIcons,  icons } from "lucide";
+import { createIcons, icons } from "lucide";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "@/assets/css/vendors/tabulator.css";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
+import { Dialog } from "@/components/Base/Headless";
+import Lucide from "@/components/Base/Lucide";
 import CreateGramage from "./CreateGramage";
 import EditGamage from "./EditGamage";
 
+interface Gramage {
+  id: number;
+  GRM: string;
+}
+
 function Main() {
+  const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator | null>(null);
+  const searchValueRef = useRef("");
+const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-   const [filterValue, setFilterValue] = useState("");
+  const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [addNewGramModal, setAddNewGramModal] = useState(false);
-  const [editGramModal, setEditGramModal] = useState(false);
-  const [GramToEdit, setGramToEdit] = useState<any>(null);
+  const [addNewGramageModal, setAddNewGramageModal] = useState(false);
+  const [editGramageModal, setEditGramageModal] = useState(false);
+   const [editingGramageId, setEditingGramageId] = useState<number | null>(null);
+  
+  const [GramageToEdit, setGramageToEdit] = useState<any>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+  const searchRef = useRef(searchTerm);
+ 
 
-  const [tableData, setTableData] = useState([
-    { id: 1, grm: "200" },
-    { id: 2, grm: "300" },
-    { id: 3, grm: "500" },
-  ]);
+ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
+  const [deleteGramageId, setDeleteGramageId] = useState<number | null>(null);
+  const deleteButtonRef = useRef(null);
 
-
- useEffect(() => {
+  useEffect(() => {
     filterValueRef.current = filterValue;
   }, [filterValue]);
 
+  const initTabulator = () => {
+    if (!tableRef.current) return;
 
-     const initTabulator = () => {
-    if (tableRef.current) {
-     tabulator.current = new Tabulator(tableRef.current, {
-    data: tableData, 
-    layout: "fitColumns",
-    responsiveLayout: "collapse",
-    placeholder: "No matching records found",
-    pagination: true,
-    paginationSize: 10,
-    paginationSizeSelector: [10, 20, 30, 40],
+    tabulator.current = new Tabulator(tableRef.current, {
+      ajaxURL: `${BASE_URL}/api/gramage`,
+      ajaxConfig: {
+        method: "GET",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      },
+      ajaxParams: () => {
+        const page = tabulator.current?.getPage() || 1;
+        const size = tabulator.current?.getPageSize() || 10;
+
+        const params: any = { page, size };
+        if (filterValueRef.current) {
+          params["filter[0][type]"] = "like";
+          params["filter[0][value]"] = filterValueRef.current;
+        }
+        return params;
+      },
+      ajaxResponse: (url, params, response) => {
+        return {
+          last_page: Math.ceil(response.totalCount / (params.size || 10)),
+          data: response.items,
+        };
+      },
+      ajaxContentType: "json",
+      pagination: true,
+      paginationMode: "remote",
+      filterMode: "remote",
+      sortMode: "remote",
+      layout: "fitColumns",
+      responsiveLayout: "collapse",
+      placeholder: "No matching records found",
+      paginationSize: 10,
+      paginationSizeSelector: [10, 20, 30, 50],
       columns: [
-         { title: "Sr.No", hozAlign: "center", formatter: "rownum", width: 80 },
-          { title: "grm", field: "grm", minWidth: 200, hozAlign: "center", headerHozAlign: "center", },
+        { title: "Sr.No", hozAlign: "center",headerHozAlign: "center",formatter: "rownum", width: 80 },
+        { title: "GRM", hozAlign: "center", headerHozAlign: "center", field: "grm", minWidth: 200 },
 
         {
           title: "Actions",
-          width: 200,
           field: "actions",
           hozAlign: "center",
           headerHozAlign: "center",
-          formatter(cell) {
+          minWidth: 150,
+          formatter: (cell) => {
             const container = document.createElement("div");
-            container.className =
-              "flex lg:justify-center items-center gap-2";
+container.className = "flex justify-center items-center gap-2";
 
             const rowData = cell.getRow().getData();
-
             const actions = [
               {
                 label: "Edit",
                 icon: "check-square",
-                classes:
-                  "bg-green-100 hover:bg-green-200 text-green-800",
+                classes: "bg-green-100 hover:bg-green-200 text-green-800",
                 onClick: () => {
-                  setGramToEdit(rowData);
-                  setEditGramModal(true);
+                  setEditingGramageId(rowData.id);
+                  setEditGramageModal(true);
                 },
+                
               },
               {
                 label: "Delete",
                 icon: "trash-2",
-                classes:
-                  "bg-red-100 hover:bg-red-200 text-red-800",
-               onClick: () => {
-                    if (confirm("Are you sure you want to delete this chemical?")) {
-                        setTableData((prev) => prev.filter((r) => r.id !== rowData.id));
-                    }
-                  },
+                action: "delete",
+                classes: "bg-red-100 hover:bg-red-200 text-red-800",
+                onClick: () => {
+                  setDeleteGramageId(rowData.id);
+                  setDeleteConfirmationModal(true);
+                },
               },
             ];
 
             actions.forEach(({ label, icon, classes, onClick }) => {
-              const button = document.createElement("a");
-              button.href = "javascript:;";
-              button.className = `action-btn inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes} transition-colors`;
-              button.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
-
-              button.addEventListener("click", (e) => {
+              const btn = document.createElement("a");
+              btn.href = "javascript:;";
+              btn.className = `action-btn inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes}`;
+              btn.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
+              btn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 onClick();
               });
-
-              container.appendChild(button);
+              container.appendChild(btn);
             });
-
             return container;
           },
         },
+        
       ],
     });
 
     tabulator.current.on("renderComplete", () => {
-      createIcons({ icons });
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     });
-
-  tabulator.current.on("renderComplete", () => {
-        createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
-      });
-    }
   };
 
   const refreshTable = () => {
-    if (tabulator.current) {
-      tabulator.current.replaceData(tableData);
-    }
+    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
   };
 
-  const handleFilterChange = (value: string) => {
-    setFilterValue(value);
+const handleFilterChange = (value: string) => {
+  setFilterValue(value);
 
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+  if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
-    debounceTimeout.current = setTimeout(() => {
-      if (tabulator.current) {
-        const filtered = tableData.filter((row) =>
-          row.grm.toLowerCase().includes(filterValueRef.current.toLowerCase())
-        );
-        tabulator.current.replaceData(filtered);
-      }
-    }, 300);
+  
+  searchTimeout.current = setTimeout(() => {
+    searchValueRef.current = value.trim();
+
+    if (tabulator.current) {
+      tabulator.current.setData(`${BASE_URL}/api/gramage`, {
+        params: {
+          page: 1,
+          size: tabulator.current.getPageSize() || 10,
+          ...(searchValueRef.current
+            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
+            : {}),
+        },
+      });
+    }
+  }, 600);
+};
+
+
+
+
+
+  const handleDeleteGramage = async () => {
+    if (!deleteGramageId) return;
+
+    try {
+      await axios.delete(`${BASE_URL}/api/gramage/${deleteGramageId}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      setDeleteConfirmationModal(false);
+      setDeleteGramageId(null);
+      refreshTable();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete gramage");
+    }
   };
 
   useEffect(() => {
     initTabulator();
-    window.addEventListener("resize", () => {
-      if (tabulator.current) {
-        tabulator.current.redraw();
-        createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
-      }
-    });
-
-    return () => {
-      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    const handleResize = () => {
+      tabulator.current?.redraw();
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     };
-  }, [tableData]);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-
-  const handleAddGram = (data: { grm: string }) => {
-    setTableData((prev) => [
-      ...prev,
-      { id: prev.length + 1, grm: data.grm },
-    ]);
-  };
-
-
-  const handleUpdateGram = (data: { id: number; grm: string }) => {
-    setTableData((prev) =>
-      prev.map((row) => (row.id === data.id ? data : row))
-    );
-  };
 
   return (
     <>
-      {/* Header */}
-      <div className="flex items-center mt-8">
+      <div className="flex flex-col sm:flex-row items-center mt-8 mb-4">
         <h2 className="mr-auto text-lg font-medium">Gramage Table</h2>
-        <Button
-          variant="primary"
-          className="shadow-md"
-          onClick={() => setAddNewGramModal(true)}
-        >
-          Add Name
+        <Button variant="primary" onClick={() => setAddNewGramageModal(true)}>
+          Add Gramage
         </Button>
       </div>
 
-
-      {/* Table */}
-      <div className="p-5 mt-5 box">
-         <div className="flex items-center mb-3">
+      <div className="p-5 box">
+        <div className="flex items-center mb-3">
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Search ..."
             className="w-64"
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}
           />
         </div>
+
         <div className="overflow-x-auto">
-          <div ref={tableRef} className="mt-5"></div>
+          <div ref={tableRef}></div>
         </div>
-        
       </div>
 
-      {/* Modals */}
       <CreateGramage
-        open={addNewGramModal}
-        onClose={() => setAddNewGramModal(false)}
-        onAddGram={handleAddGram}
+        open={addNewGramageModal}
+        onClose={() => setAddNewGramageModal(false)}
+        onSuccess={refreshTable}
       />
 
       <EditGamage
-        open={editGramModal}
-        onClose={() => setEditGramModal(false)}
-        GramData={GramToEdit}
-        onUpdateGram={handleUpdateGram}
+        open={editGramageModal}
+        onClose={() => setEditGramageModal(false)}
+         gramageId={editingGramageId}
+          onSuccess={refreshTable}
       />
+
+      <Dialog
+        open={deleteConfirmationModal}
+        onClose={() => setDeleteConfirmationModal(false)}
+        initialFocus={deleteButtonRef}
+      >
+        <Dialog.Panel>
+          <div className="p-5 text-center">
+            <Lucide icon="Trash" className="w-16 h-16 mx-auto mt-3 text-danger" />
+            <div className="mt-5 text-3xl">Are you sure?</div>
+            <div className="mt-2 text-slate-500">
+              Do you really want to <span className="text-danger">delete</span> this Gramge?
+            </div>
+          </div>
+          <div className="px-5 pb-8 text-center">
+            <Button
+              variant="outline-secondary"
+              type="button"
+              onClick={() => setDeleteConfirmationModal(false)}
+              className="w-24 mr-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              type="button"
+              className="w-24"
+              ref={deleteButtonRef}
+              onClick={handleDeleteGramage}
+            >
+              Delete
+            </Button>
+          </div>
+        </Dialog.Panel>
+      </Dialog>
     </>
   );
 }

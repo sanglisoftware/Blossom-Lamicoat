@@ -1,132 +1,200 @@
 import Button from "@/components/Base/Button";
 import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config"
+import { useState } from "react";
+import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
+import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
 
-interface AddProductProps {
+interface CreateNewPVcproductModalProps {
   open: boolean;
   onClose: () => void;
-  onAddPVCProduct: (data: FormValues) => void;
+  onSuccess: () => void; 
 }
 
-// ✅ Define form fields
-interface FormValues {
-  name: string;
-  grm: string;
-  pvcProduct: string;
-  colour: string;
-  comments: string;
-}
 
-// ✅ Validation schema
-const schema = yup.object({
-  name: yup.string().required("Name is required"),
-  grm: yup.string().required("Gramage is required"),
-  pvcProduct: yup.string().required("Width is required"),
-  colour: yup.string().required("Colour is required"),
-  comments: yup.string().required("Comments are required"),
-});
-
-
-const AddProduct: React.FC<AddProductProps> = ({
+const AddPVcproduct: React.FC<CreateNewPVcproductModalProps> = ({
   open,
   onClose,
-  onAddPVCProduct,
+  onSuccess,
 }) => {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: yupResolver(schema),
-    mode: "onChange",
+   const token = localStorage.getItem("token");
+
+  const [formData, setFormData] = useState({
+    Name: "",
+    Gramage: "",
+    Width: "",
+    Colour: "",
+    Comments: "",
+
   });
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => {
-    onAddPVCProduct(data);
-    reset();
-    onClose();
+
+const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalConfig, setSuccessModalConfig] =
+    useState<SuccessModalConfig>({
+      title: "",
+      subtitle: "",
+      icon: "CheckCircle",
+      buttonText: "OK",
+      onButtonClick: () => {},
+    });
+
+  const clearFormData = () =>
+    setFormData({ Name: "",  Gramage: "",Width: "", Colour: "", Comments: "", });
+
+  const handleSubmit = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.Name) errors.Name = "Name is required";
+    if (!formData.Gramage) errors.Gramage = "Gramage required";
+    if (!formData.Width) errors.Width = "Width  required";
+    if (!formData.Colour) errors.Colour = "Colour are required";
+    if (!formData.Comments) errors.Comments = "Comments are required";
+
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      const payload = {
+        Name: formData.Name,
+        Gramage: formData.Gramage,
+        Width: formData.Width,
+        Colour: formData.Colour,
+        Comments: formData.Comments,
+        isActive: 1,
+      };
+
+      const response = await axios.post(`${BASE_URL}/api/pvcproductlist`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        clearFormData();
+        setFormErrors({});
+        onClose();
+
+        setSuccessModalConfig({
+          title: "PVC Product Created Successfully",
+          subtitle: "The new PVC Product has been added to the system.",
+          icon: "CheckCircle",
+          buttonText: "OK",
+          onButtonClick: () => setIsSuccessModalOpen(false),
+        });
+
+        setIsSuccessModalOpen(true);
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Product submit error:", error);
+      alert(error.response?.data?.detail || "Something went wrong");
+    }
   };
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} staticBackdrop size="md">
       <Dialog.Panel>
         <Dialog.Title>
-          <h2 className="text-base font-medium">Add PVC Product</h2>
+          <h2 className="text-base font-medium">Create New Product</h2>
         </Dialog.Title>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
           <Dialog.Description className="space-y-4">
-
             <div>
-              <FormLabel>Name</FormLabel>
-              <FormInput {...register("name")} />
-              {errors.name && (
-                <p className="text-danger text-sm mt-1">{errors.name.message}</p>
-              )}
+              <FormLabel> Name</FormLabel>
+              <FormInput
+                type="text"
+                placeholder="Enter  Name"
+               value={formData.Name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Name: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Name: "" }));
+                }}
+              />
+              {formErrors.Name && <p className="text-sm text-red-500">{formErrors.Name}</p>}
             </div>
 
+            {/* Type */}
             <div>
               <FormLabel>Gramage</FormLabel>
-              <FormInput {...register("grm")} />
-              {errors.grm && (
-                <p className="text-danger text-sm mt-1">{errors.grm.message}</p>
-              )}
+              <FormInput
+                type="text"
+                placeholder="Enter Gramage"
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Gramage: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Gramage: "" }));
+                }}
+              />
+              {formErrors.Gramage && <p className="text-sm text-red-500">{formErrors.Gramage}</p>}
             </div>
 
+     
             <div>
               <FormLabel>Width</FormLabel>
-              <FormInput {...register("pvcProduct")} />
-              {errors.pvcProduct && (
-                <p className="text-danger text-sm mt-1">{errors.pvcProduct.message}</p>
-              )}
+              <FormInput
+                type="text"
+                placeholder="Enter number"
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Width: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Width: "" }));
+                }}
+              />
+              {formErrors.Width && <p className="text-sm text-red-500">{formErrors.Width}</p>}
             </div>
 
             <div>
               <FormLabel>Colour</FormLabel>
-              <FormInput {...register("colour")} />
-              {errors.colour && (
-                <p className="text-danger text-sm mt-1">{errors.colour.message}</p>
-              )}
+              <FormInput
+                type="text"
+                placeholder="Enter Colour"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Colour: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Colour: "" }));
+                }}
+              />
+              {formErrors.Colour && <p className="text-sm text-red-500">{formErrors.Colour}</p>}
             </div>
 
             <div>
               <FormLabel>Comments</FormLabel>
-              <FormInput {...register("comments")} />
-              {errors.comments && (
-                <p className="text-danger text-sm mt-1">{errors.comments.message}</p>
-              )}
+              <FormInput
+                type="text"
+                placeholder="Enter Comments"
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Comments: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Comments: "" }));
+                }}
+              />
+              {formErrors.Comments && <p className="text-sm text-red-500">{formErrors.Comments}</p>}
             </div>
-
           </Dialog.Description>
-
-          <Dialog.Footer>
-            <Button
-              as="button"
-              type="button"
-              variant="secondary"
-              className="w-24 mb-2 mr-1"
-              onClick={onClose}
-            >
+ <Dialog.Footer>
+            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
               Cancel
             </Button>
-
-            <Button
-              as="button"          
-              type="submit"        
-              variant="primary"
-              className="w-24 mb-2 mr-1"
-            >
+            <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
               Add
             </Button>
           </Dialog.Footer>
-        </form>
-      </Dialog.Panel>
-    </Dialog>
+        </Dialog.Panel>
+      </Dialog>
+
+      <SuccessModal
+        open={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        {...successModalConfig}
+      />
+</>
   );
 };
 
-export default AddProduct;
+export default AddPVcproduct;

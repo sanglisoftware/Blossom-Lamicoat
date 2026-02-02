@@ -1,75 +1,106 @@
 import { useState, useRef, useEffect, createRef } from "react";
 import Button from "@/components/Base/Button";
-import "@/assets/css/vendors/tabulator.css";
+import { FormInput } from "@/components/Base/Form";
 import { createIcons, icons } from "lucide";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
-
+import "@/assets/css/vendors/tabulator.css";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
+import { Dialog } from "@/components/Base/Headless";
+import Lucide from "@/components/Base/Lucide";
 import AddProduct from "./AddProduct";
 import EditProduct from "./EditProduct";
-import { FormInput } from "@/components/Base/Form";
 
 function Main() {
+  const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
-  const tabulator = useRef<Tabulator | null>(null);
+  const tabulator = useRef<Tabulator>();
 
-   const [filterValue, setFilterValue] = useState("");
+  const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+const searchValueRef = useRef(""); // only updated when debounce triggers
+const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const [addNewPVCProductModal, setAddNewPVCProductModal] = useState(false);
-  const [editPVCProductModal, setEditPVCProductModal] = useState(false);
-  const [PVCProductToEdit, setPVCProductToEdit] = useState<any>(null);
+  const [addPVcproductModal, setAddPVcproductModal] = useState(false);
+  const [editPVcproductModal, setEditPVcproductModal] = useState(false);
+  const [editingPVcproduct, setEditingPVcproduct] = useState<any>(null);
+  const [editingPVcproductId, setEditingPVcproductId] = useState<number | null>(null);
 
-  const [PVCProductTableData, setPVCProductTableData] = useState([
-    {
-      id: 1,
-      name: "Product A",
-      grm: "200",
-      pvcProduct: "20 inch",
-      colour: "Red",
-      comments: "Sample",
-    },
-    {
-      id: 2,
-      name: "Product B",
-      grm: "300",
-      pvcProduct: "25 inch",
-      colour: "Blue",
-      comments: "Test",
-    },
-  ]);
+const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
+  const [deletePVcproductId, setDeletePVcproductId] = useState<number | null>(null);
+  const deleteButtonRef = useRef(null);
 
   useEffect(() => {
+    filterValueRef.current = filterValue;
+  }, [filterValue]);
+
+  const initTabulator = () => {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      data: PVCProductTableData,
-      layout: "fitColumns",
-      responsiveLayout: false,
+      ajaxURL: `${BASE_URL}/api/pvcproductlist`,
+      ajaxConfig: {
+        method: "GET",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      },
+      ajaxParams: () => {
+        const page = tabulator.current?.getPage() || 1;
+        const size = tabulator.current?.getPageSize() || 10;
+
+        const params: any = { page, size };
+        if (filterValueRef.current) {
+          params["filter[0][type]"] = "like";
+          params["filter[0][value]"] = filterValueRef.current;
+        }
+        return params;
+      },
+      ajaxResponse: (url, params, response) => {
+        return {
+          last_page: Math.ceil(response.totalCount / (params.size || 10)),
+          data: response.items,
+        };
+      },
+      ajaxContentType: "json",
       pagination: true,
+      paginationMode: "remote",
+      filterMode: "remote",
+      sortMode: "remote",
+      layout: "fitColumns",
+      responsiveLayout: "collapse",
+      placeholder: "No matching records found",
       paginationSize: 10,
-      paginationSizeSelector: [10, 20, 30, 40],
-     
+      paginationSizeSelector: [10, 20, 30, 50],
+
       columns: [
         {
           title: "Sr.No",
+          hozAlign: "center",
+          headerHozAlign: "center",
           formatter: "rownum",
           width: 80,
         },
-        { title: "Name", field: "name" },
-        { title: "Gramage", field: "grm" },
-        { title: "Width", field: "pvcProduct" },
-        { title: "Colour", field: "colour" },
-        { title: "Comments", field: "comments" },
+        { title: "Name", field: "name", hozAlign: "center",  headerHozAlign: "center",minWidth: 180 },
+        { title: "Gramage", field: "gramage", hozAlign: "center",  headerHozAlign: "center",minWidth: 200 },
+        { title: "WIdth", field: "width", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
+        { title: "Colour", field: "colour",hozAlign: "center",  headerHozAlign: "center", minWidth: 200 },
+        { title: "Comments", field: "comments", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
+
         {
-          title: "Actions",
-          width: 200,
+          title: "ACTIONS",
+          field: "actions",
+          hozAlign: "center",
+          headerHozAlign: "center",
+          minWidth: 180,
+          print: false,
+          download: false,
+
           formatter(cell) {
             const container = document.createElement("div");
-            container.className =
-              "flex lg:justify-center items-center gap-2";
+            container.className = "flex justify-center items-center space-x-2";
 
-            const rowData: any = cell.getRow().getData();
+            const rowData = cell.getRow().getData();
 
             const actions = [
               {
@@ -78,8 +109,8 @@ function Main() {
                 classes:
                   "bg-green-100 hover:bg-green-200 text-green-800",
                 onClick: () => {
-                  setPVCProductToEdit(rowData);
-                  setEditPVCProductModal(true);
+                  setEditingPVcproductId(rowData.id);
+                  setEditPVcproductModal(true);
                 },
               },
               {
@@ -88,31 +119,24 @@ function Main() {
                 classes:
                   "bg-red-100 hover:bg-red-200 text-red-800",
                 onClick: () => {
-                  if (
-                    confirm(
-                      "Are you sure you want to delete this product?"
-                    )
-                  ) {
-                    setPVCProductTableData((prev) =>
-                      prev.filter((r) => r.id !== rowData.id)
-                    );
-                  }
+                 setDeletePVcproductId(rowData.id);
+                  setDeleteConfirmationModal(true);
                 },
               },
             ];
 
             actions.forEach(({ label, icon, classes, onClick }) => {
-              const button = document.createElement("a");
-              button.href = "javascript:;";
-              button.className = `action-btn inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes}`;
-              button.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
+              const btn = document.createElement("a");
+              btn.href = "javascript:;";
+              btn.className = `inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes}`;
+              btn.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i>${label}`;
 
-              button.addEventListener("click", (e) => {
+              btn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 onClick();
               });
 
-              container.appendChild(button);
+              container.appendChild(btn);
             });
 
             return container;
@@ -120,81 +144,81 @@ function Main() {
         },
       ],
     });
-
-    tabulator.current.on("renderComplete", () => {
-      createIcons({
-        icons,
-        attrs: { "stroke-width": 1.5 },
-        nameAttr: "data-lucide",
-      });
+ tabulator.current.on("renderComplete", () => {
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     });
+  };
 
-    return () => tabulator.current?.destroy();
+  const refreshTable = () => {
+    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
+  };
+
+const handleFilterChange = (value: string) => {
+  setFilterValue(value);
+
+  if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+  
+  searchTimeout.current = setTimeout(() => {
+    searchValueRef.current = value.trim();
+
+    if (tabulator.current) {
+      tabulator.current.setData(`${BASE_URL}/api/pvcproductlist`, {
+        params: {
+          page: 1,
+          size: tabulator.current.getPageSize() || 10,
+          ...(searchValueRef.current
+            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
+            : {}),
+        },
+      });
+    }
+  }, 600);
+};
+
+
+
+
+
+  const handleDeletePVcproduct = async () => {
+    if (!deletePVcproductId) return;
+
+    try {
+      await axios.delete(`${BASE_URL}/api/pvcproductlist/${deletePVcproductId}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      setDeleteConfirmationModal(false);
+      setDeletePVcproductId(null);
+      refreshTable();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete product");
+    }
+  };
+
+  useEffect(() => {
+    initTabulator();
+    const handleResize = () => {
+      tabulator.current?.redraw();
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
 
-  useEffect(() => {
-    tabulator.current?.replaceData(PVCProductTableData);
-  }, [PVCProductTableData]);
-
-  const handleAddPVCProduct = (data: {
-    name: string;
-    grm: string;
-    pvcProduct: string;
-    colour: string;
-    comments: string;
-  }) => {
-    setPVCProductTableData((prev) => [
-      ...prev,
-      { id: prev.length + 1, ...data },
-    ]);
-  };
-
-  const handleUpdatePVCProduct = (data: {
-    id: number;
-    name: string;
-    grm: string;
-    pvcProduct: string;
-    colour: string;
-    comments: string;
-  }) => {
-    setPVCProductTableData((prev) =>
-      prev.map((row) => (row.id === data.id ? data : row))
-    );
-  };
-
-
-  const handleFilterChange = (value: string) => {
-    setFilterValue(value);
-
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-
-    debounceTimeout.current = setTimeout(() => {
-      if (tabulator.current) {
-        const filtered = PVCProductTableData.filter((row) =>
-          row.name.toLowerCase().includes(filterValueRef.current.toLowerCase())
-        );
-        tabulator.current.replaceData(filtered);
-      }
-    }, 300);
-  };
   return (
     <>
-      <div className="flex items-center mt-8">
-        <h2 className="mr-auto text-lg font-medium">
-          PVC Product Table
-        </h2>
-        <Button
-          variant="primary"
-          className="shadow-md"
-          onClick={() => setAddNewPVCProductModal(true)}
-        >
+      <div className="flex items-center justify-between mt-8 mb-4">
+        <h2 className="text-lg font-medium">PVC Product Table</h2>
+        <Button variant="primary" onClick={() => setAddPVcproductModal(true)}>
           Add Product
         </Button>
       </div>
 
-      <div className="p-5 mt-5 box">
-        <div className="flex items-center mb-3">
+      <div className="p-5 box">
+          <div className="flex items-center mb-3">
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
@@ -205,23 +229,58 @@ function Main() {
           />
         </div>
 
+
         <div className="overflow-x-auto">
-          <div ref={tableRef} className="mt-5"></div>
+          <div ref={tableRef}></div>
         </div>
       </div>
 
       <AddProduct
-        open={addNewPVCProductModal}
-        onClose={() => setAddNewPVCProductModal(false)}
-        onAddPVCProduct={handleAddPVCProduct}
+        open={addPVcproductModal}
+        onClose={() => setAddPVcproductModal(false)}
+        onSuccess={refreshTable}
       />
 
       <EditProduct
-        open={editPVCProductModal}
-        onClose={() => setEditPVCProductModal(false)}
-        PVCProductData={PVCProductToEdit}
-        onUpdatePVCProduct={handleUpdatePVCProduct}
+        open={editPVcproductModal}
+      PVcproductId={editingPVcproductId}
+        onClose={() => setEditPVcproductModal(false)}
+        onSuccess={refreshTable}
       />
+      <Dialog
+        open={deleteConfirmationModal}
+        onClose={() => setDeleteConfirmationModal(false)}
+        initialFocus={deleteButtonRef}
+      >
+        <Dialog.Panel>
+          <div className="p-5 text-center">
+            <Lucide icon="Trash" className="w-16 h-16 mx-auto mt-3 text-danger" />
+            <div className="mt-5 text-3xl">Are you sure?</div>
+            <div className="mt-2 text-slate-500">
+              Do you really want to <span className="text-danger">delete</span> this product?
+            </div>
+          </div>
+          <div className="px-5 pb-8 text-center">
+            <Button
+              variant="outline-secondary"
+              type="button"
+              onClick={() => setDeleteConfirmationModal(false)}
+              className="w-24 mr-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              type="button"
+              className="w-24"
+              ref={deleteButtonRef}
+              onClick={handleDeletePVcproduct}
+            >
+              Delete
+            </Button>
+          </div>
+        </Dialog.Panel>
+      </Dialog>
     </>
   );
 }
