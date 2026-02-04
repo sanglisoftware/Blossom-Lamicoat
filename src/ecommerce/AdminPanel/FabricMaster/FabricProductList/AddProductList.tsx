@@ -3,136 +3,180 @@ import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config"
+import { useState } from "react";
+import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
+import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
 
-/* ✅ Props */
-interface AddProductListProps {
+interface CreateNewFproductModalProps {
   open: boolean;
   onClose: () => void;
-  onAddPVCProduct: (data: {
-    name: string;
-    grm: string;
-    colour: string;
-    comments: string;
-  }) => void;
+  onSuccess: () => void; 
 }
 
-/* ✅ Validation Schema */
-const schema = yup.object({
-  name: yup.string().required("Name is required"),
-  grm: yup.string().required("GRM is required"),
-  colour: yup.string().required("Colour is required"),
-  comments: yup.string().optional(),
-});
 
-const AddProductList: React.FC<AddProductListProps> = ({
+const Addproduct: React.FC<CreateNewFproductModalProps> = ({
   open,
   onClose,
-  onAddPVCProduct,
+  onSuccess,
 }) => {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    mode: "onChange",
-    resolver: yupResolver(schema),
+   const token = localStorage.getItem("token");
+
+  const [formData, setFormData] = useState({
+    Name: "",
+    GRM: "",
+    Colour: "",
+    Comments: "",
+
   });
 
-  const onSubmit = (data: any) => {
-    onAddPVCProduct(data);
-    reset();
-    onClose();
+
+const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalConfig, setSuccessModalConfig] =
+    useState<SuccessModalConfig>({
+      title: "",
+      subtitle: "",
+      icon: "CheckCircle",
+      buttonText: "OK",
+      onButtonClick: () => {},
+    });
+
+  const clearFormData = () =>
+    setFormData({ Name: "",  GRM: "", Colour: "", Comments: "", });
+
+  const handleSubmit = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.Name) errors.Name = "Name is required";
+    if (!formData.GRM) errors.GRM = "Gramage required";
+    if (!formData.Colour) errors.Colour = "Colour are required";
+    if (!formData.Comments) errors.Comments = "Comments are required";
+
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      const payload = {
+        Name: formData.Name,
+        GRM: formData.GRM,
+        Colour: formData.Colour,
+        Comments: formData.Comments,
+        isActive: 1,
+      };
+
+      const response = await axios.post(`${BASE_URL}/api/fproductlist`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        clearFormData();
+        setFormErrors({});
+        onClose();
+
+        setSuccessModalConfig({
+          title: "Fabric Product Created Successfully",
+          subtitle: "The new Fabric Product has been added to the system.",
+          icon: "CheckCircle",
+          buttonText: "OK",
+          onButtonClick: () => setIsSuccessModalOpen(false),
+        });
+
+        setIsSuccessModalOpen(true);
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Product submit error:", error);
+      alert(error.response?.data?.detail || "Something went wrong");
+    }
   };
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} staticBackdrop size="md">
       <Dialog.Panel>
         <Dialog.Title>
-          <h2 className="text-base font-medium">Add Fabric Product</h2>
+          <h2 className="text-base font-medium">Create New Product</h2>
         </Dialog.Title>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Dialog.Description className="mt-4 space-y-4">
-            {/* Product Name */}
+          <Dialog.Description className="space-y-4">
             <div>
-              <FormLabel>Name</FormLabel>
+              <FormLabel> Name</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter product name"
-                {...register("name")}
+                placeholder="Enter  Name"
+               value={formData.Name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Name: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Name: "" }));
+                }}
               />
-              {errors.name && (
-                <p className="mt-1 text-sm text-danger">
-                  {String(errors.name.message)}
-                </p>
-              )}
+              {formErrors.Name && <p className="text-sm text-red-500">{formErrors.Name}</p>}
             </div>
 
-            {/* GRM */}
+            {/* Type */}
             <div>
-              <FormLabel>GRM</FormLabel>
+              <FormLabel>Gramage</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter GRM"
-                {...register("grm")}
+                placeholder="Enter Gramage"
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, GRM: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, GRM: "" }));
+                }}
               />
-              {errors.grm && (
-                <p className="mt-1 text-sm text-danger">
-                  {String(errors.grm.message)}
-                </p>
-              )}
+              {formErrors.GRM && <p className="text-sm text-red-500">{formErrors.GRM}</p>}
             </div>
 
-            {/* Colour */}
             <div>
               <FormLabel>Colour</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter colour"
-                {...register("colour")}
+                placeholder="Enter Colour"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Colour: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Colour: "" }));
+                }}
               />
-              {errors.colour && (
-                <p className="mt-1 text-sm text-danger">
-                  {String(errors.colour.message)}
-                </p>
-              )}
+              {formErrors.Colour && <p className="text-sm text-red-500">{formErrors.Colour}</p>}
             </div>
 
-            {/* Comments */}
             <div>
               <FormLabel>Comments</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter comments"
-                {...register("comments")}
+                placeholder="Enter Comments"
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Comments: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Comments: "" }));
+                }}
               />
+              {formErrors.Comments && <p className="text-sm text-red-500">{formErrors.Comments}</p>}
             </div>
           </Dialog.Description>
-
-          <Dialog.Footer className="mt-5 text-right">
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-24 mr-2"
-              onClick={onClose}
-            >
+ <Dialog.Footer>
+            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
               Cancel
             </Button>
-
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-24"
-            >
+            <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
               Add
             </Button>
           </Dialog.Footer>
-        </form>
-      </Dialog.Panel>
-    </Dialog>
+        </Dialog.Panel>
+      </Dialog>
+
+      <SuccessModal
+        open={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        {...successModalConfig}
+      />
+</>
   );
 };
 
-export default AddProductList;
+export default Addproduct;

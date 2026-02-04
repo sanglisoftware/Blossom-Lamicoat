@@ -1,128 +1,197 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/Base/Button";
 import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
+import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
+import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
 
-/* ✅ Props */
-interface EditProductListProps {
+interface EditEditFproductProps {
   open: boolean;
   onClose: () => void;
-  PVCProductData: {
-    id: number;
-    name: string;
-    grm: string;
-    colour: string;
-    comments: string;
-  } | null;
-  onUpdatePVCProduct: (data: {
-    id: number;
-    name: string;
-    grm: string;
-    colour: string;
-    comments: string;
-  }) => void;
+  fproductId: number | null;
+  onSuccess?: () => void; 
 }
 
-const EditProductList: React.FC<EditProductListProps> = ({
+const EditProduct: React.FC<EditEditFproductProps> = ({
   open,
   onClose,
-  PVCProductData,
-  onUpdatePVCProduct,
+  fproductId,
+  onSuccess,
 }) => {
+  const token = localStorage.getItem("token");
+
   const [formData, setFormData] = useState({
     id: 0,
     name: "",
     grm: "",
-    colour: "",
-    comments: "",
+    colour:"",
+    comments:"",
+    isActive: 1,
   });
 
-  /* ✅ Load selected row data */
-  useEffect(() => {
-    if (PVCProductData) {
-      setFormData(PVCProductData);
-    }
-  }, [PVCProductData]);
+const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalConfig, setSuccessModalConfig] =
+    useState<SuccessModalConfig>({
+      title: "",
+      subtitle: "",
+      icon: "CheckCircle",
+      buttonText: "OK",
+      onButtonClick: () => {},
+    });
 
-  const handleUpdate = () => {
-    if (!formData.name || !formData.grm || !formData.colour) return;
-    onUpdatePVCProduct(formData);
-    onClose();
+  useEffect(() => {
+    if (!open || !fproductId) return;
+
+    const fetchCustomer = async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/api/fproductlist/${fproductId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setFormData({
+          id: res.data.id,
+          name: res.data.name,
+          grm: res.data.grm,
+          colour: res.data.colour,
+          comments: res.data.comments,
+          isActive: res.data.isActive ?? 1,
+        });
+        setFormErrors({});
+      } catch (error) {
+        console.error("Error fetching product:", error);
+      }
+    };
+
+    fetchCustomer();
+  }, [open, fproductId, token]);
+
+  const handleUpdate = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.name) errors.name = "Name is required.";
+    if (!formData.grm) errors.gramage = "gramage is required.";
+    if (!formData.colour) errors.colour = "colour is required.";
+    if (!formData.comments) errors.comments = "comments is required.";
+
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      const payload = {
+        id: formData.id,
+        name: formData.name,
+        grm: formData.grm,
+        colour: formData.colour,
+        comments: formData.comments,
+        isActive: formData.isActive,
+      };
+
+      const res = await axios.put(`${BASE_URL}/api/fproductlist/${formData.id}`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.status === 200 || res.status === 201) {
+        onClose();
+
+        setSuccessModalConfig({
+          title: "Product Updated Successfully",
+          subtitle: "The product details have been updated.",
+          icon: "CheckCircle",
+          buttonText: "OK",
+          onButtonClick: () => setIsSuccessModalOpen(false),
+        });
+
+        setIsSuccessModalOpen(true);
+
+        if (onSuccess) onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Product update error:", error);
+      alert(
+        error.response?.data?.message ||
+          error.response?.data?.detail ||
+          "Something went wrong"
+      );
+    }
   };
 
+
   return (
+    <>
     <Dialog open={open} onClose={onClose} staticBackdrop size="md">
       <Dialog.Panel>
         <Dialog.Title>
-          <h2 className="text-base font-medium">Edit Fabric Product</h2>
+          <h2 className="text-base font-medium">Edit Product</h2>
         </Dialog.Title>
 
-        <Dialog.Description className="mt-4 space-y-4">
-          {/* Name */}
+        <Dialog.Description className="space-y-4">
           <div>
-            <FormLabel>Name</FormLabel>
+            <FormLabel> Name</FormLabel>
             <FormInput
               type="text"
-              placeholder="Enter name"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
             />
+        {formErrors.Name && <p className="text-sm text-red-500">{formErrors.name}</p>}
           </div>
 
-          {/* GRM */}
           <div>
-            <FormLabel>GRM</FormLabel>
+            <FormLabel>Gramage</FormLabel>
             <FormInput
               type="text"
-              placeholder="Enter GRM"
               value={formData.grm}
               onChange={(e) =>
                 setFormData({ ...formData, grm: e.target.value })
               }
             />
+        {formErrors.grm && <p className="text-sm text-red-500">{formErrors.grm}</p>}
+
           </div>
 
-          {/* Colour */}
-          <div>
+
+           <div>
             <FormLabel>Colour</FormLabel>
             <FormInput
               type="text"
-              placeholder="Enter colour"
               value={formData.colour}
               onChange={(e) =>
                 setFormData({ ...formData, colour: e.target.value })
               }
             />
+        {formErrors.colour && <p className="text-sm text-red-500">{formErrors.colour}</p>}
+
           </div>
 
-          {/* Comments */}
-          <div>
+           <div>
             <FormLabel>Comments</FormLabel>
             <FormInput
               type="text"
-              placeholder="Enter comments"
               value={formData.comments}
               onChange={(e) =>
                 setFormData({ ...formData, comments: e.target.value })
               }
             />
+        {formErrors.comments && <p className="text-sm text-red-500">{formErrors.comments}</p>}
+
           </div>
         </Dialog.Description>
 
-        <Dialog.Footer className="mt-5 text-right">
+        <Dialog.Footer>
           <Button
-            variant="secondary"
+            variant="outline-secondary"
             className="w-24 mr-2"
             onClick={onClose}
           >
             Cancel
           </Button>
-
           <Button
             variant="primary"
-            className="w-24"
+            className="w-24 bg-blue-600 hover:bg-blue-700"
             onClick={handleUpdate}
           >
             Update
@@ -130,7 +199,13 @@ const EditProductList: React.FC<EditProductListProps> = ({
         </Dialog.Footer>
       </Dialog.Panel>
     </Dialog>
+       <SuccessModal
+        open={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        {...successModalConfig}
+      />
+      </>
   );
 };
 
-export default EditProductList;
+export default EditProduct;

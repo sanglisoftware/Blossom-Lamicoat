@@ -4,88 +4,126 @@ import { Dialog } from "@/components/Base/Headless";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
+import { useState } from "react";
+import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
+import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
 
-interface AddGramProps {
+interface CreateNewFGramageModalProps {
   open: boolean;
   onClose: () => void;
-  onAddGram: (data: { grm: string }) => void; // ✅ FIXED
+  onSuccess: () => void; 
 }
 
-const schema = yup.object({
-  grm: yup
-    .string()
-    .required("Gram is required")
-    .min(2, "Minimum 2 characters"),
-});
-
-const AddGram: React.FC<AddGramProps> = ({
+const AddGram: React.FC<CreateNewFGramageModalProps> = ({
   open,
   onClose,
-  onAddGram,
+  onSuccess,
 }) => {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<{ grm: string }>({
-    resolver: yupResolver(schema),
-    mode: "onChange",
+ const token = localStorage.getItem("token");
+
+  const [formData, setFormData] = useState({
+    GRM: "",
   });
 
-  const onSubmit = (data: { grm: string }) => {
-    onAddGram(data);   // ✅ NOW MATCHES Main.tsx
-    reset();
-    onClose();
+
+   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalConfig, setSuccessModalConfig] =
+    useState<SuccessModalConfig>({
+      title: "",
+      subtitle: "",
+      icon: "CheckCircle",
+      buttonText: "OK",
+      onButtonClick: () => {},
+    });
+
+    const clearFormData = () =>
+    setFormData({ GRM: ""});
+
+  const handleSubmit = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.GRM) errors.GRM = "grm is required";
+
+     setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      const payload = {
+        grm: formData.GRM,
+        isActive: 1,
+      };
+
+      const response = await axios.post(`${BASE_URL}/api/fgramage`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        clearFormData();
+        setFormErrors({});
+        onClose();
+
+        setSuccessModalConfig({
+          title: "Gramage Created Successfully",
+          subtitle: "The new gramage has been added to the system.",
+          icon: "CheckCircle",
+          buttonText: "OK",
+          onButtonClick: () => setIsSuccessModalOpen(false),
+        });
+
+        setIsSuccessModalOpen(true);
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Gramage submit error:", error);
+      alert(error.response?.data?.detail || "Something went wrong");
+    }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} staticBackdrop size="md">
+    <>
+     <Dialog open={open} onClose={onClose} staticBackdrop size="md">
       <Dialog.Panel>
         <Dialog.Title>
-          <h2 className="text-base font-medium">Create New Gram</h2>
+          <h2 className="text-base font-medium">Create New Gramage</h2>
         </Dialog.Title>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Dialog.Description className="space-y-4">
+         <Dialog.Description className="space-y-4">
             <div>
-              <FormLabel>Gram</FormLabel>
+              <FormLabel>Gramage </FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter Gram"
-                {...register("grm")}
+                placeholder="Enter grm"
+                value={formData.GRM}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, GRM: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, GRM: "" }));
+                }}
               />
-              {errors.grm && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.grm.message}
-                </p>
-              )}
+              {formErrors.GRM && <p className="text-sm text-red-500">{formErrors.GRM}</p>}
             </div>
+
           </Dialog.Description>
 
           <Dialog.Footer>
-              <Button
-              as="button"
-              type="button"
-              variant="secondary"
-              className="w-24 mb-2 mr-1"
-              onClick={onClose}
-            >
+            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
               Cancel
             </Button>
-
-            <Button
-              as="button"          
-              type="submit"        
-              variant="primary"
-              className="w-24 mb-2 mr-1"
-            >
+            <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
               Add
             </Button>
           </Dialog.Footer>
-        </form>
       </Dialog.Panel>
     </Dialog>
+    
+     <SuccessModal
+        open={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        {...successModalConfig}
+      />
+    </>
   );
 };
 
