@@ -3,113 +3,145 @@ import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config"
+import { useState } from "react";
+import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
+import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
 
-interface CreateNewChemicalModalProps {
+interface CreateNewQualityModalProps {
   open: boolean;
   onClose: () => void;
-  onAddChemical: (data: {
-    Name: string;
-    Comments: string;
-     GSM_GLM: string;
-      Colour: string;
-  }) => void;
+  onSuccess: () => void; 
 }
 
-const schema = yup.object({
-  Name: yup
-    .string()
-    .required("Chemical name is required")
-    .min(2, "Minimum 2 characters"),
 
-  Comments: yup
-    .string()
-    .required("Comments are required")
-    .min(10, "Minimum 2 characters"),
-
- GSM_GLM: yup
-    .string()
-    .required("required")
-    .min(10, "Minimum 2characters"),
-     Colour: yup
-    .string()
-    .required("Colour are required")
-    .min(10, "Minimum 2 characters"),
-
-});
-
-const AddGoods: React.FC<CreateNewChemicalModalProps> = ({
+const AddGoods: React.FC<CreateNewQualityModalProps> = ({
   open,
   onClose,
-  onAddChemical,
+  onSuccess,
 }) => {
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    mode: "onChange",
-    resolver: yupResolver(schema),
+   const token = localStorage.getItem("token");
+
+  const [formData, setFormData] = useState({
+    Name: "",
+    Comments: "",
+    gsM_GLM: "",
+    Colour: "",
+
   });
 
-  const onSubmit = (data: any) => {
-    onAddChemical(data);
-    reset();
-    onClose();
+
+const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successModalConfig, setSuccessModalConfig] =
+    useState<SuccessModalConfig>({
+      title: "",
+      subtitle: "",
+      icon: "CheckCircle",
+      buttonText: "OK",
+      onButtonClick: () => {},
+    });
+
+  const clearFormData = () =>
+    setFormData({ Name: "",   gsM_GLM: "", Colour: "", Comments: "", });
+
+  const handleSubmit = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.Name) errors.Name = "Name is required";
+    if (!formData. gsM_GLM) errors. gsM_GLM = " GSM_GLM required";
+    if (!formData.Colour) errors.Colour = "Colour are required";
+    if (!formData.Comments) errors.Comments = "Comments are required";
+
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    try {
+      const payload = {
+        Name: formData.Name,
+        Comments: formData.Comments,
+        gsM_GLM: formData. gsM_GLM,
+        Colour: formData.Colour,
+        isActive: 1,
+      };
+
+      const response = await axios.post(`${BASE_URL}/api/quality`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        clearFormData();
+        setFormErrors({});
+        onClose();
+
+        setSuccessModalConfig({
+          title: " Product Created Successfully",
+          subtitle: "The new  Product has been added to the system.",
+          icon: "CheckCircle",
+          buttonText: "OK",
+          onButtonClick: () => setIsSuccessModalOpen(false),
+        });
+
+        setIsSuccessModalOpen(true);
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Product submit error:", error);
+      alert(error.response?.data?.detail || "Something went wrong");
+    }
   };
 
   return (
+    <>
     <Dialog open={open} onClose={onClose} staticBackdrop size="md">
       <Dialog.Panel>
         <Dialog.Title>
-          <h2 className="text-base font-medium">Create New Chemical</h2>
+          <h2 className="text-base font-medium">Create New Product</h2>
         </Dialog.Title>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
           <Dialog.Description className="space-y-4">
-            {/* Chemical Name */}
             <div>
               <FormLabel> Name</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter Chemical Name"
-                {...register("Name")}
+                placeholder="Enter  Name"
+               value={formData.Name}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Name: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Name: "" }));
+                }}
               />
-              {errors.Name && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.Name.message}
-                </p>
-              )}
+              {formErrors.Name && <p className="text-sm text-red-500">{formErrors.Name}</p>}
             </div>
-            {/* Comments */}
-            <div>
+
+         <div>
               <FormLabel>Comments</FormLabel>
               <FormInput
                 type="text"
                 placeholder="Enter Comments"
-                {...register("Comments")}
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Comments: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Comments: "" }));
+                }}
               />
-              {errors.Comments && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.Comments.message}
-                </p>
-              )}
+              {formErrors.Comments && <p className="text-sm text-red-500">{formErrors.Comments}</p>}
             </div>
 
-            {/* Type */}
             <div>
-              <FormLabel>GSM/GRM</FormLabel>
+              <FormLabel>GSM/GLM</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter GSM/GRM"
-                {...register("GSM_GLM")}
+                placeholder="Enter GSM/GLM"
+               onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, gsM_GLM: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, gsM_GLM: "" }));
+                }}
               />
-              {errors.GSM_GLM && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.GSM_GLM.message}
-                </p>
-              )}
+              {formErrors.gsM_GLM && <p className="text-sm text-red-500">{formErrors.gsM_GLM}</p>}
             </div>
 
             <div>
@@ -117,41 +149,34 @@ const AddGoods: React.FC<CreateNewChemicalModalProps> = ({
               <FormInput
                 type="text"
                 placeholder="Enter Colour"
-                {...register("Colour")}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData({ ...formData, Colour: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Colour: "" }));
+                }}
               />
-              {errors.Colour && (
-                <p className="mt-1 text-sm text-danger">
-                  {errors.Colour.message}
-                </p>
-              )}
+              {formErrors.Colour && <p className="text-sm text-red-500">{formErrors.Colour}</p>}
             </div>
+
+           
           </Dialog.Description>
-
-          <Dialog.Footer>
-            {/* <Button
-              type="button"
-              variant="outline-secondary"
-              className="w-24 mr-2"
-              onClick={onClose}
-            >
+ <Dialog.Footer>
+            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
               Cancel
-            </Button> */}
-            <Button
-  type="button"
-  variant="secondary"
-  className="w-24 mb-2 mr-1"
-  onClick={onClose}
->
-  Cancel
-</Button>
-
-             <Button variant="primary" className="w-24 mb-2 mr-1">
-        Add
-    </Button>
+            </Button>
+            <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
+              Add
+            </Button>
           </Dialog.Footer>
-        </form>
-      </Dialog.Panel>
-    </Dialog>
+        </Dialog.Panel>
+      </Dialog>
+
+      <SuccessModal
+        open={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        {...successModalConfig}
+      />
+</>
   );
 };
 
