@@ -1,39 +1,61 @@
 import Button from "@/components/Base/Button";
 import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
-import { useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
 import axios from "axios";
-import { BASE_URL } from "@/ecommerce/config/config"
-import { useState } from "react";
-import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
+import { BASE_URL } from "@/ecommerce/config/config";
+import { useEffect, useState, useMemo } from "react";
 import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
+import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
+import TomSelect from "@/components/Base/TomSelect";
 
-interface CreateNewPVcproductModalProps {
+interface AddPVcproductProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void; 
+  onSuccess: () => void;
 }
 
+interface GramageOptions {
+  id: number;
+  grm: string;
+  isActive: number;
+}
 
-const AddPVcproduct: React.FC<CreateNewPVcproductModalProps> = ({
+interface WidthOptions {
+  id: number;
+  grm: string;
+  isActive: number;
+}
+
+interface ColourOptions {
+  id: number;
+  name: string;
+  isActive: number;
+}
+
+const AddPVcproduct: React.FC<AddPVcproductProps> = ({
   open,
   onClose,
   onSuccess,
 }) => {
-   const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
-    Name: "",
-    Gramage: "",
-    Width: "",
-    Colour: "",
-    Comments: "",
-
+    name: "",
+    gramageMasterId: "",
+    widthMasterId: "",
+    colourMasterId: "",
+    comments: "",
   });
 
+  const [gramages, setGramages] = useState<GramageOptions[]>([]);
+  const [widths, setWidths] = useState<WidthOptions[]>([]);
+  const [colours, setColours] = useState<ColourOptions[]>([]);
 
-const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [gramageLoaded, setGramageLoaded] = useState(false);
+  const [widthLoaded, setWidthLoaded] = useState(false);
+  const [colourLoaded, setColourLoaded] = useState(false);
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successModalConfig, setSuccessModalConfig] =
     useState<SuccessModalConfig>({
@@ -45,33 +67,128 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     });
 
   const clearFormData = () =>
-    setFormData({ Name: "",  Gramage: "",Width: "", Colour: "", Comments: "", });
+    setFormData({
+      name: "",
+      gramageMasterId: "",
+      widthMasterId: "",
+      colourMasterId: "",
+      comments: "",
+    });
+
+  /* ---------------- FETCH DATA ---------------- */
+
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchAll = async () => {
+      try {
+        setGramageLoaded(false);
+        setWidthLoaded(false);
+        setColourLoaded(false);
+
+        const [gRes, wRes, cRes] = await Promise.all([
+          axios.get(`${BASE_URL}/api/gramage`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${BASE_URL}/api/width`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${BASE_URL}/api/colour`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        setGramages(gRes.data.items || []);
+        setWidths(wRes.data.items || []);
+        setColours(cRes.data.items || []);
+
+        setGramageLoaded(true);
+        setWidthLoaded(true);
+        setColourLoaded(true);
+      } catch (error) {
+        console.error("Dropdown fetch error:", error);
+      }
+    };
+
+    fetchAll();
+  }, [open, token]);
+
+  /* ---------------- FILTER ACTIVE ---------------- */
+
+  const activeGramages = useMemo(
+    () => gramages.filter((g) => g.isActive === 1),
+    [gramages]
+  );
+
+  const activeWidths = useMemo(
+    () => widths.filter((w) => w.isActive === 1),
+    [widths]
+  );
+
+  const activeColours = useMemo(
+    () => colours.filter((c) => c.isActive === 1),
+    [colours]
+  );
+
+  /* ---------------- HANDLE CHANGE ---------------- */
+
+  const handleGramageChange = (e: { target: { value: string } }) => {
+  setFormData((prev) => ({
+    ...prev,
+    gramageMasterId: e.target.value,
+  }));
+};
+
+const handleWidthChange = (e: { target: { value: string } }) => {
+  setFormData((prev) => ({
+    ...prev,
+    widthMasterId: e.target.value,
+  }));
+};
+
+const handleColourChange = (e: { target: { value: string } }) => {
+  setFormData((prev) => ({
+    ...prev,
+    colourMasterId: e.target.value,
+  }));
+};
+
+  /* ---------------- SUBMIT ---------------- */
 
   const handleSubmit = async () => {
     const errors: Record<string, string> = {};
-    if (!formData.Name) errors.Name = "Name is required";
-    if (!formData.Gramage) errors.Gramage = "Gramage required";
-    if (!formData.Width) errors.Width = "Width  required";
-    if (!formData.Colour) errors.Colour = "Colour are required";
-    if (!formData.Comments) errors.Comments = "Comments are required";
 
+    if (!formData.name) errors.name = "Name is required";
+    if (!formData.gramageMasterId)
+      errors.gramageMasterId = "Gramage is required";
+    if (!formData.widthMasterId)
+      errors.widthMasterId = "Width is required";
+    if (!formData.colourMasterId)
+      errors.colourMasterId = "Colour is required";
+    if (!formData.comments) errors.comments = "Comments are required";
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
     try {
       const payload = {
-        Name: formData.Name,
-        Gramage: formData.Gramage,
-        Width: formData.Width,
-        Colour: formData.Colour,
-        Comments: formData.Comments,
+        name: formData.name,
+        gramageMasterId: Number(formData.gramageMasterId),
+        widthMasterId: Number(formData.widthMasterId),
+        colourMasterId: Number(formData.colourMasterId),
+        comments: formData.comments,
         isActive: 1,
       };
 
-      const response = await axios.post(`${BASE_URL}/api/pvcproductlist`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      console.log("Submitting payload:", payload);
+
+      const response = await axios.post(
+        `${BASE_URL}/api/pvcproductlist`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (response.status === 200 || response.status === 201) {
         clearFormData();
@@ -79,8 +196,8 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
         onClose();
 
         setSuccessModalConfig({
-          title: "PVC Product Created Successfully",
-          subtitle: "The new PVC Product has been added to the system.",
+          title: "Product Created Successfully",
+          subtitle: "The new product has been added to the system.",
           icon: "CheckCircle",
           buttonText: "OK",
           onButtonClick: () => setIsSuccessModalOpen(false),
@@ -90,98 +207,138 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
         onSuccess();
       }
     } catch (error: any) {
-      console.error("Product submit error:", error);
+      console.error("Submit error:", error);
       alert(error.response?.data?.detail || "Something went wrong");
     }
   };
 
+  /* ---------------- UI ---------------- */
+
   return (
     <>
-    <Dialog open={open} onClose={onClose} staticBackdrop size="md">
-      <Dialog.Panel>
-        <Dialog.Title>
-          <h2 className="text-base font-medium">Create New Product</h2>
-        </Dialog.Title>
+      <Dialog open={open} onClose={onClose} staticBackdrop size="md">
+        <Dialog.Panel>
+          <Dialog.Title>
+            <h2 className="text-base font-medium">Create New Product</h2>
+          </Dialog.Title>
 
           <Dialog.Description className="space-y-4">
+            {/* Name */}
             <div>
-              <FormLabel> Name</FormLabel>
+              <FormLabel>Name</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter  Name"
-               value={formData.Name}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, Name: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Name: "" }));
-                }}
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
               />
-              {formErrors.Name && <p className="text-sm text-red-500">{formErrors.Name}</p>}
+              {formErrors.name && (
+                <p className="text-red-500 text-sm">{formErrors.name}</p>
+              )}
             </div>
 
-            {/* Type */}
+            {/* Gramage */}
             <div>
               <FormLabel>Gramage</FormLabel>
-              <FormInput
-                type="text"
-                placeholder="Enter Gramage"
-               onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, Gramage: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Gramage: "" }));
-                }}
-              />
-              {formErrors.Gramage && <p className="text-sm text-red-500">{formErrors.Gramage}</p>}
+              {gramageLoaded ? (
+                <TomSelect
+                  value={formData.gramageMasterId}
+                  onChange={handleGramageChange}
+                  options={{ placeholder: "Select Gramage" }}
+                >
+                  <option value="">Select Gramage</option>
+                  {activeGramages.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.grm}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p>Loading...</p>
+              )}
+              {formErrors.gramageMasterId && (
+                <p className="text-red-500 text-sm">
+                  {formErrors.gramageMasterId}
+                </p>
+              )}
             </div>
 
-     
+            {/* Width */}
             <div>
               <FormLabel>Width</FormLabel>
-              <FormInput
-                type="text"
-                placeholder="Enter number"
-               onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, Width: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Width: "" }));
-                }}
-              />
-              {formErrors.Width && <p className="text-sm text-red-500">{formErrors.Width}</p>}
+              {widthLoaded ? (
+                <TomSelect
+                  value={formData.widthMasterId}
+                  onChange={handleWidthChange}
+                  options={{ placeholder: "Select Width" }}
+                >
+                  <option value="">Select Width</option>
+                  {activeWidths.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.grm}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p>Loading...</p>
+              )}
+              {formErrors.widthMasterId && (
+                <p className="text-red-500 text-sm">
+                  {formErrors.widthMasterId}
+                </p>
+              )}
             </div>
 
+            {/* Colour */}
             <div>
               <FormLabel>Colour</FormLabel>
-              <FormInput
-                type="text"
-                placeholder="Enter Colour"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, Colour: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Colour: "" }));
-                }}
-              />
-              {formErrors.Colour && <p className="text-sm text-red-500">{formErrors.Colour}</p>}
+              {colourLoaded ? (
+                <TomSelect
+                  value={formData.colourMasterId}
+                  onChange={handleColourChange}
+                  options={{ placeholder: "Select Colour" }}
+                >
+                  <option value="">Select Colour</option>
+                  {activeColours.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p>Loading...</p>
+              )}
+              {formErrors.colourMasterId && (
+                <p className="text-red-500 text-sm">
+                  {formErrors.colourMasterId}
+                </p>
+              )}
             </div>
 
+            {/* Comments */}
             <div>
               <FormLabel>Comments</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter Comments"
-               onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, Comments: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Comments: "" }));
-                }}
+                value={formData.comments}
+                onChange={(e) =>
+                  setFormData({ ...formData, comments: e.target.value })
+                }
               />
-              {formErrors.Comments && <p className="text-sm text-red-500">{formErrors.Comments}</p>}
+              {formErrors.comments && (
+                <p className="text-red-500 text-sm">
+                  {formErrors.comments}
+                </p>
+              )}
             </div>
           </Dialog.Description>
- <Dialog.Footer>
-            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
+
+          <Dialog.Footer>
+            <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
+            <Button variant="primary" onClick={handleSubmit}>
               Add
             </Button>
           </Dialog.Footer>
@@ -193,7 +350,7 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
         onClose={() => setIsSuccessModalOpen(false)}
         {...successModalConfig}
       />
-</>
+    </>
   );
 };
 

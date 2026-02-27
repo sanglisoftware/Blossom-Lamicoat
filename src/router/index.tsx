@@ -142,18 +142,18 @@ function Router() {
             { path: "role-list", element: <RoleList /> },
             { path: "employee-list", element: <EmployeeList /> },
             { path: "Chemical", element: <Chemical /> },
-            { path: "chemical-inword", element: <ChemicalInword/> },
+            // { path: "chemical-inword", element: <ChemicalInword/> },
             { path: "inword-list", element: <InwardList/> },
 
             { path: "gramage", element: <GramageTable/> },
             { path: "Width", element: <Width/> },
             { path: "product-list", element: <ProductCreation/> },
-            { path: "PVC-Inward", element: <PVCInward/> },
+            // { path: "PVC-Inward", element: <PVCInward/> },
             { path: "PVC-InwardList", element: <PVCInwardList/> },
 
               { path: "grm", element: <GRM/> },
             { path: "fabricproduct-list", element: <FabricProductList/> },
-            { path: "fabric-inword", element: <FabricInword/> },         
+            // { path: "fabric-inword", element: <FabricInword/> },         
             { path: "inword-report", element: <InwardReport/> },
 
             

@@ -1,146 +1,135 @@
-import { useState, useEffect, useMemo } from "react";
+
 import Button from "@/components/Base/Button";
 import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
-import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
+import { useEffect, useState, useMemo } from "react";
 import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
+import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
 import TomSelect from "@/components/Base/TomSelect";
 
-interface EditInwardListProps {
+interface AddInwardListProps {
   open: boolean;
   onClose: () => void;
-  InwardId: number | null;
-  onSuccess?: () => void;
+  onSuccess: () => void;
 }
 
-interface Chemical {
+interface ChemicalOptions {
   id: number;
   name: string;
   isActive: number;
 }
 
-interface Supplier {
+interface SupplierOptions {
   id: number;
   name: string;
   isActive: number;
 }
 
-const EditWidth: React.FC<EditInwardListProps> = ({
+const AddInwardList: React.FC<AddInwardListProps> = ({
   open,
   onClose,
-  InwardId,
   onSuccess,
 }) => {
   const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
-    id: 0,
     chemicalId: "",
-    ChemicalName: "",
     QTY: "",
     supplierId: "",
-    Supplier: "",
     BatchNo: "",
     BillDate: "",
     ReceivedDate: "",
-    isActive: 1,
   });
 
-  const [chemicals, setChemicals] = useState<Chemical[]>([]);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [chemicals, setChemicals] = useState<ChemicalOptions[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierOptions[]>([]);
+
   const [chemicalsLoaded, setChemicalsLoaded] = useState(false);
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [successModalConfig, setSuccessModalConfig] = useState<SuccessModalConfig>({
-    title: "",
-    subtitle: "",
-    icon: "CheckCircle",
-    buttonText: "OK",
-    onButtonClick: () => {},
-  });
+  const [successModalConfig, setSuccessModalConfig] =
+    useState<SuccessModalConfig>({
+      title: "",
+      subtitle: "",
+      icon: "CheckCircle",
+      buttonText: "OK",
+      onButtonClick: () => {},
+    });
 
-  // Fetch chemicals and suppliers lists
+  // Fetch Chemicals
   useEffect(() => {
-    const fetchLists = async () => {
+    if (!open) return;
+    const fetchChemicals = async () => {
       try {
         setChemicalsLoaded(false);
-        setSuppliersLoaded(false);
-        const [chemRes, suppRes] = await Promise.all([
-          axios.get(`${BASE_URL}/api/chemical`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${BASE_URL}/api/supplier`, { headers: { Authorization: `Bearer ${token}` } }),
-        ]);
-
-        setChemicals((chemRes.data.items || []).filter((c: Chemical) => c.isActive === 1));
-        setSuppliers((suppRes.data.items || []).filter((s: Supplier) => s.isActive === 1));
-        setChemicalsLoaded(true);
-        setSuppliersLoaded(true);
-      } catch (error) {
-        console.error("Error fetching chemicals or suppliers:", error);
-      }
-    };
-
-    fetchLists();
-  }, [token]);
-
-  // Fetch inward details
-  useEffect(() => {
-    if (!open || !InwardId) return;
-
-    const fetchInward = async () => {
-      try {
-        const res = await axios.get(`${BASE_URL}/api/chemicalinward/${InwardId}`, {
+        const response = await axios.get(`${BASE_URL}/api/chemical`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        const chemicalName = chemicals.find(c => c.id === res.data.chemicalMasterId)?.name || "";
-        const supplierName = suppliers.find(s => s.id === res.data.supplierMasterId)?.name || "";
-
-        setFormData({
-          id: res.data.id,
-          chemicalId: res.data.chemicalMasterId?.toString() || "",
-          ChemicalName: chemicalName,
-          QTY: res.data.qty?.toString() || "",
-          supplierId: res.data.supplierMasterId?.toString() || "",
-          Supplier: supplierName,
-          BatchNo: res.data.batchNo?.toString() || "",
-          BillDate: res.data.billDate?.split("T")[0] || "",
-          ReceivedDate: res.data.receivedDate?.split("T")[0] || "",
-          isActive: res.data.isActive ?? 1,
-        });
-
-        setFormErrors({});
+        setChemicals(response.data.items || []);
+        setChemicalsLoaded(true);
       } catch (error) {
-        console.error("Error fetching inward:", error);
+        console.error("Error fetching chemicals:", error);
       }
     };
+    fetchChemicals();
+  }, [open, token]);
 
-    fetchInward();
-  }, [open, InwardId, chemicals, suppliers, token]);
+  // Fetch Suppliers
+  useEffect(() => {
+    if (!open) return;
+    const fetchSuppliers = async () => {
+      try {
+        setSuppliersLoaded(false);
+        const response = await axios.get(`${BASE_URL}/api/supplier`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSuppliers(response.data.items || []);
+        setSuppliersLoaded(true);
+      } catch (error) {
+        console.error("Error fetching suppliers:", error);
+      }
+    };
+    fetchSuppliers();
+  }, [open, token]);
 
-  const activeChemicals = useMemo(() => chemicals.filter((c) => c.isActive === 1), [chemicals]);
-  const activeSuppliers = useMemo(() => suppliers.filter((s) => s.isActive === 1), [suppliers]);
+  const clearFormData = () =>
+    setFormData({
+      chemicalId: "",
+      QTY: "",
+      supplierId: "",
+      BatchNo: "",
+      BillDate: "",
+      ReceivedDate: "",
+    });
+
+  // Memoized active chemicals/suppliers
+  const activeChemicals = useMemo(
+    () => chemicals.filter((c) => c.isActive === 1),
+    [chemicals]
+  );
+  const activeSuppliers = useMemo(
+    () => suppliers.filter((s) => s.isActive === 1),
+    [suppliers]
+  );
 
   const handleChemicalChange = (value: string | number) => {
     setFormData((prev) => ({ ...prev, chemicalId: String(value) }));
-    setFormErrors((prev) => ({ ...prev, ChemicalName: "" }));
   };
 
   const handleSupplierChange = (value: string | number) => {
     setFormData((prev) => ({ ...prev, supplierId: String(value) }));
-    setFormErrors((prev) => ({ ...prev, Supplier: "" }));
   };
 
-  const handleUpdate = async () => {
+  const handleSubmit = async () => {
     const errors: Record<string, string> = {};
-
-    if (!formData.chemicalId) errors.ChemicalName = "Chemical is required";
+    if (!formData.chemicalId) errors.chemicalId = "Chemical is required";
     if (!formData.QTY) errors.QTY = "QTY is required";
-    if (!formData.supplierId) errors.Supplier = "Supplier is required";
-    if (!formData.BatchNo) errors.BatchNo = "Batch No is required";
+    if (!formData.supplierId) errors.supplierId = "Supplier is required";
+    if (!formData.BatchNo) errors.BatchNo = "BatchNo is required";
     if (!formData.BillDate) errors.BillDate = "Bill Date is required";
     if (!formData.ReceivedDate) errors.ReceivedDate = "Received Date is required";
 
@@ -149,38 +138,38 @@ const EditWidth: React.FC<EditInwardListProps> = ({
 
     try {
       const payload = {
-        id: formData.id,
         chemicalMasterId: Number(formData.chemicalId),
         qty: Number(formData.QTY),
         supplierMasterId: Number(formData.supplierId),
         batchNo: Number(formData.BatchNo),
         billDate: formData.BillDate,
         receivedDate: formData.ReceivedDate,
-        isActive: formData.isActive,
+        isActive: 1,
       };
 
-      const res = await axios.put(`${BASE_URL}/api/chemicalinward/${formData.id}`, payload, {
+      const response = await axios.post(`${BASE_URL}/api/chemicalinward`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.status === 200 || res.status === 201) {
+      if (response.status === 200 || response.status === 201) {
+        clearFormData();
+        setFormErrors({});
         onClose();
 
         setSuccessModalConfig({
-          title: "Inward Updated Successfully",
-          subtitle: "The inward details have been updated.",
+          title: "Inward Created Successfully",
+          subtitle: "The new Inward has been added to the system.",
           icon: "CheckCircle",
           buttonText: "OK",
           onButtonClick: () => setIsSuccessModalOpen(false),
         });
 
         setIsSuccessModalOpen(true);
-
-        if (onSuccess) onSuccess();
+        onSuccess();
       }
     } catch (error: any) {
-      console.error("Update error:", error);
-      alert(error.response?.data?.message || "Something went wrong");
+      console.error("Inward submit error:", error);
+      alert(error.response?.data?.detail || "Something went wrong");
     }
   };
 
@@ -189,13 +178,14 @@ const EditWidth: React.FC<EditInwardListProps> = ({
       <Dialog open={open} onClose={onClose} staticBackdrop size="md">
         <Dialog.Panel>
           <Dialog.Title>
-            <h2 className="text-base font-medium">Edit Inward</h2>
+            <h2 className="text-base font-medium">Create New Inward</h2>
           </Dialog.Title>
 
           <Dialog.Description className="space-y-4">
-            {/* Chemical Name */}
+
+            {/* Chemical Dropdown */}
             <div>
-              <FormLabel>Chemical Name</FormLabel>
+              <FormLabel>Chemicals</FormLabel>
               {chemicalsLoaded ? (
                 <TomSelect
                   value={formData.chemicalId}
@@ -204,16 +194,16 @@ const EditWidth: React.FC<EditInwardListProps> = ({
                   className="w-full"
                 >
                   <option value="">Select Chemical</option>
-                  {activeChemicals.map((chemical) => (
-                    <option key={chemical.id} value={chemical.id}>
-                      {chemical.name}
+                  {activeChemicals.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
                     </option>
                   ))}
                 </TomSelect>
               ) : (
                 <p className="text-gray-500 text-sm">Loading chemicals...</p>
               )}
-              {formErrors.ChemicalName && <p className="text-sm text-red-500">{formErrors.ChemicalName}</p>}
+              {formErrors.chemicalId && <p className="text-red-500 text-sm">{formErrors.chemicalId}</p>}
             </div>
 
             {/* QTY */}
@@ -229,12 +219,12 @@ const EditWidth: React.FC<EditInwardListProps> = ({
                   if (value.trim()) setFormErrors((prev) => ({ ...prev, QTY: "" }));
                 }}
               />
-              {formErrors.QTY && <p className="text-sm text-red-500">{formErrors.QTY}</p>}
+              {formErrors.QTY && <p className="text-red-500 text-sm">{formErrors.QTY}</p>}
             </div>
 
-            {/* Supplier */}
+            {/* Supplier Dropdown */}
             <div>
-              <FormLabel>Supplier</FormLabel>
+              <FormLabel>Suppliers</FormLabel>
               {suppliersLoaded ? (
                 <TomSelect
                   value={formData.supplierId}
@@ -243,19 +233,19 @@ const EditWidth: React.FC<EditInwardListProps> = ({
                   className="w-full"
                 >
                   <option value="">Select Supplier</option>
-                  {activeSuppliers.map((supplier) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
+                  {activeSuppliers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
                     </option>
                   ))}
                 </TomSelect>
               ) : (
                 <p className="text-gray-500 text-sm">Loading suppliers...</p>
               )}
-              {formErrors.Supplier && <p className="text-sm text-red-500">{formErrors.Supplier}</p>}
+              {formErrors.supplierId && <p className="text-red-500 text-sm">{formErrors.supplierId}</p>}
             </div>
 
-            {/* Batch No */}
+            {/* BatchNo */}
             <div>
               <FormLabel>Batch No</FormLabel>
               <FormInput
@@ -268,47 +258,39 @@ const EditWidth: React.FC<EditInwardListProps> = ({
                   if (value.trim()) setFormErrors((prev) => ({ ...prev, BatchNo: "" }));
                 }}
               />
-              {formErrors.BatchNo && <p className="text-sm text-red-500">{formErrors.BatchNo}</p>}
+              {formErrors.BatchNo && <p className="text-red-500 text-sm">{formErrors.BatchNo}</p>}
             </div>
 
-            {/* Bill Date & Received Date */}
+            {/* Dates */}
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
                 <FormLabel>Bill Date</FormLabel>
                 <FormInput
                   type="date"
                   value={formData.BillDate}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData({ ...formData, BillDate: value });
-                    if (value) setFormErrors((prev) => ({ ...prev, BillDate: "" }));
-                  }}
+                  onChange={(e) => setFormData({ ...formData, BillDate: e.target.value })}
                 />
-                {formErrors.BillDate && <p className="text-sm text-red-500">{formErrors.BillDate}</p>}
+                {formErrors.BillDate && <p className="text-red-500 text-sm">{formErrors.BillDate}</p>}
               </div>
-
               <div>
                 <FormLabel>Received Date</FormLabel>
                 <FormInput
                   type="date"
                   value={formData.ReceivedDate}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setFormData({ ...formData, ReceivedDate: value });
-                    if (value) setFormErrors((prev) => ({ ...prev, ReceivedDate: "" }));
-                  }}
+                  onChange={(e) => setFormData({ ...formData, ReceivedDate: e.target.value })}
                 />
-                {formErrors.ReceivedDate && <p className="text-sm text-red-500">{formErrors.ReceivedDate}</p>}
+                {formErrors.ReceivedDate && <p className="text-red-500 text-sm">{formErrors.ReceivedDate}</p>}
               </div>
             </div>
+
           </Dialog.Description>
 
           <Dialog.Footer>
-            <Button variant="outline-secondary" className="w-24 mr-2" onClick={onClose}>
+            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="primary" className="w-24" onClick={handleUpdate}>
-              Update
+            <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
+              Add
             </Button>
           </Dialog.Footer>
         </Dialog.Panel>
@@ -323,4 +305,4 @@ const EditWidth: React.FC<EditInwardListProps> = ({
   );
 };
 
-export default EditWidth;
+export default AddInwardList;

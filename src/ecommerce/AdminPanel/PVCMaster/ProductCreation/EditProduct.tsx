@@ -1,23 +1,40 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Button from "@/components/Base/Button";
 import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
+import TomSelect from "@/components/Base/TomSelect";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
-import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
-import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
 
-interface EditEditPvcproductProps {
+interface EditProductProps {
   open: boolean;
   onClose: () => void;
-  PVcproductId: number | null;
-  onSuccess?: () => void; 
+  productId: number | null;
+  onSuccess?: () => void;
 }
 
-const EditPvcproduct: React.FC<EditEditPvcproductProps> = ({
+interface GramageOptions {
+  id: number;
+  grm: string;
+  isActive: number;
+}
+
+interface WidthOptions {
+  id: number;
+  grm: string;
+  isActive: number;
+}
+
+interface ColourOptions {
+  id: number;
+  name: string;
+  isActive: number;
+}
+
+const EditProduct: React.FC<EditProductProps> = ({
   open,
   onClose,
-  PVcproductId,
+  productId,
   onSuccess,
 }) => {
   const token = localStorage.getItem("token");
@@ -25,106 +42,127 @@ const EditPvcproduct: React.FC<EditEditPvcproductProps> = ({
   const [formData, setFormData] = useState({
     id: 0,
     name: "",
-    gramage: "",
-    width: "",
-    colour:"",
-    comments:"",
+    gramageMasterId: "",
+    widthMasterId: "",
+    colourMasterId: "",
+    comments: "",
     isActive: 1,
   });
 
-const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [successModalConfig, setSuccessModalConfig] =
-    useState<SuccessModalConfig>({
-      title: "",
-      subtitle: "",
-      icon: "CheckCircle",
-      buttonText: "OK",
-      onButtonClick: () => {},
-    });
+  const [gramages, setGramages] = useState<GramageOptions[]>([]);
+  const [widths, setWidths] = useState<WidthOptions[]>([]);
+  const [colours, setColours] = useState<ColourOptions[]>([]);
 
+  // ✅ Fetch master lists
   useEffect(() => {
-    if (!open || !PVcproductId) return;
-
-    const fetchCustomer = async () => {
+    const fetchMasters = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/api/pvcproductlist/${PVcproductId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const [gRes, wRes, cRes] = await Promise.all([
+          axios.get(`${BASE_URL}/api/gramage`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${BASE_URL}/api/width`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${BASE_URL}/api/colour`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        setGramages(gRes.data.items || []);
+        setWidths(wRes.data.items || []);
+        setColours(cRes.data.items || []);
+      } catch (error) {
+        console.error("Error loading masters:", error);
+      }
+    };
+
+    fetchMasters();
+  }, [token]);
+
+  // ✅ Fetch product details
+  useEffect(() => {
+    if (!open || !productId) return;
+
+    const fetchProduct = async () => {
+      try {
+        const res = await axios.get(
+          `${BASE_URL}/api/pvcproductlist/${productId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         setFormData({
           id: res.data.id,
-          name: res.data.name,
-          gramage: res.data.gramage,
-          width: res.data.width,
-          colour: res.data.colour,
-          comments: res.data.comments,
+          name: res.data.name || "",
+          gramageMasterId: res.data.gramageMasterId?.toString() || "",
+          widthMasterId: res.data.widthMasterId?.toString() || "",
+          colourMasterId: res.data.colourMasterId?.toString() || "",
+          comments: res.data.comments || "",
           isActive: res.data.isActive ?? 1,
         });
-        setFormErrors({});
       } catch (error) {
         console.error("Error fetching product:", error);
       }
     };
 
-    fetchCustomer();
-  }, [open, PVcproductId, token]);
+    fetchProduct();
+  }, [open, productId, token]);
 
+  // ✅ Active only
+  const activeGramages = useMemo(
+    () => gramages.filter((g) => g.isActive === 1),
+    [gramages]
+  );
+
+  const activeWidths = useMemo(
+    () => widths.filter((w) => w.isActive === 1),
+    [widths]
+  );
+
+  const activeColours = useMemo(
+    () => colours.filter((c) => c.isActive === 1),
+    [colours]
+  );
+
+  // ✅ Dropdown change handler
+  const handleChange = (field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  // ✅ Update API
   const handleUpdate = async () => {
-    const errors: Record<string, string> = {};
-    if (!formData.name) errors.name = "Name is required.";
-    if (!formData.gramage) errors.gramage = "gramage is required.";
-    if (!formData.width) errors.width = "width is required.";
-    if (!formData.colour) errors.colour = "colour is required.";
-    if (!formData.comments) errors.comments = "comments is required.";
-
-
-    setFormErrors(errors);
-    if (Object.keys(errors).length > 0) return;
-
     try {
       const payload = {
         id: formData.id,
         name: formData.name,
-        gramage: formData.gramage,
-        width: formData.width,
-        colour: formData.colour,
+        gramageMasterId: Number(formData.gramageMasterId),
+        widthMasterId: Number(formData.widthMasterId),
+        colourMasterId: Number(formData.colourMasterId),
         comments: formData.comments,
         isActive: formData.isActive,
       };
 
-      const res = await axios.put(`${BASE_URL}/api/pvcproductlist/${formData.id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.status === 200 || res.status === 201) {
-        onClose();
-
-        setSuccessModalConfig({
-          title: "Product Updated Successfully",
-          subtitle: "The product details have been updated.",
-          icon: "CheckCircle",
-          buttonText: "OK",
-          onButtonClick: () => setIsSuccessModalOpen(false),
-        });
-
-        setIsSuccessModalOpen(true);
-
-        if (onSuccess) onSuccess();
-      }
-    } catch (error: any) {
-      console.error("Product update error:", error);
-      alert(
-        error.response?.data?.message ||
-          error.response?.data?.detail ||
-          "Something went wrong"
+      await axios.put(
+        `${BASE_URL}/api/pvcproductlist/${formData.id}`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
+
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (error) {
+      console.error("Update failed:", error);
     }
   };
 
-
   return (
-    <>
     <Dialog open={open} onClose={onClose} staticBackdrop size="md">
       <Dialog.Panel>
         <Dialog.Title>
@@ -132,8 +170,10 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
         </Dialog.Title>
 
         <Dialog.Description className="space-y-4">
+
+          {/* Product Name */}
           <div>
-            <FormLabel> Name</FormLabel>
+            <FormLabel>Product Name</FormLabel>
             <FormInput
               type="text"
               value={formData.name}
@@ -141,50 +181,70 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
                 setFormData({ ...formData, name: e.target.value })
               }
             />
-        {formErrors.Name && <p className="text-sm text-red-500">{formErrors.name}</p>}
           </div>
 
+          {/* Gramage */}
           <div>
             <FormLabel>Gramage</FormLabel>
-            <FormInput
-              type="text"
-              value={formData.gramage}
+            <TomSelect
+              value={formData.gramageMasterId}
               onChange={(e) =>
-                setFormData({ ...formData, gramage: e.target.value })
+                handleChange("gramageMasterId", e.target.value)
               }
-            />
-        {formErrors.gramage && <p className="text-sm text-red-500">{formErrors.gramage}</p>}
-
+              options={{ placeholder: "Select Gramage" }}
+              className="w-full"
+            >
+              <option value="">Select Gramage</option>
+              {activeGramages.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.grm}
+                </option>
+              ))}
+            </TomSelect>
           </div>
 
+          {/* Width */}
           <div>
             <FormLabel>Width</FormLabel>
-            <FormInput
-              type="text"
-              placeholder="Enter Width"
-              value={formData.width}
+            <TomSelect
+              value={formData.widthMasterId}
               onChange={(e) =>
-                setFormData({ ...formData, width: e.target.value })
+                handleChange("widthMasterId", e.target.value)
               }
-            />
-        {formErrors.width && <p className="text-sm text-red-500">{formErrors.width}</p>}
-
+              options={{ placeholder: "Select Width" }}
+              className="w-full"
+            >
+              <option value="">Select Width</option>
+              {activeWidths.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.grm}
+                </option>
+              ))}
+            </TomSelect>
           </div>
 
-           <div>
+          {/* Colour */}
+          <div>
             <FormLabel>Colour</FormLabel>
-            <FormInput
-              type="text"
-              value={formData.colour}
+            <TomSelect
+              value={formData.colourMasterId}
               onChange={(e) =>
-                setFormData({ ...formData, colour: e.target.value })
+                handleChange("colourMasterId", e.target.value)
               }
-            />
-        {formErrors.colour && <p className="text-sm text-red-500">{formErrors.colour}</p>}
-
+              options={{ placeholder: "Select Colour" }}
+              className="w-full"
+            >
+              <option value="">Select Colour</option>
+              {activeColours.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </TomSelect>
           </div>
 
-           <div>
+          {/* Comments */}
+          <div>
             <FormLabel>Comments</FormLabel>
             <FormInput
               type="text"
@@ -193,36 +253,21 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
                 setFormData({ ...formData, comments: e.target.value })
               }
             />
-        {formErrors.comments && <p className="text-sm text-red-500">{formErrors.comments}</p>}
-
           </div>
+
         </Dialog.Description>
 
         <Dialog.Footer>
-          <Button
-            variant="outline-secondary"
-            className="w-24 mr-2"
-            onClick={onClose}
-          >
+          <Button variant="outline-secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            className="w-24 bg-blue-600 hover:bg-blue-700"
-            onClick={handleUpdate}
-          >
+          <Button variant="primary" onClick={handleUpdate}>
             Update
           </Button>
         </Dialog.Footer>
       </Dialog.Panel>
     </Dialog>
-       <SuccessModal
-        open={isSuccessModalOpen}
-        onClose={() => setIsSuccessModalOpen(false)}
-        {...successModalConfig}
-      />
-      </>
   );
 };
 
-export default EditPvcproduct;
+export default EditProduct;

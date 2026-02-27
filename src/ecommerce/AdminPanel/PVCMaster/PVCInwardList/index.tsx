@@ -1,217 +1,296 @@
 import { useState, useRef, useEffect, createRef } from "react";
 import Button from "@/components/Base/Button";
-import "@/assets/css/vendors/tabulator.css";
+import { FormInput } from "@/components/Base/Form";
 import { createIcons, icons } from "lucide";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
-
-import CreatePVCInward from "./CreatePVCInward";
+import "@/assets/css/vendors/tabulator.css";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
+import { Dialog } from "@/components/Base/Headless";
+import Lucide from "@/components/Base/Lucide";
+import CreatePVCInwardList from "./CreatePVCInward";
 import EditPVCInward from "./EditPVCInward";
-import { FormInput } from "@/components/Base/Form";
+
+
+interface PVCInward {
+  id: number;
+  SupplierName: string;
+  PVC: string;
+  NewRollNo: number;
+  BatchNo: number;
+  QTYkg: number;
+  QTMTR: number;
+  Comments: string;
+ 
+}
 
 function Main() {
+  const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator | null>(null);
+  const searchValueRef = useRef("");
+const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    const [filterValue, setFilterValue] = useState("");
+  const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [addModal, setAddModal] = useState(false);
-  const [editModal, setEditModal] = useState(false);
-  const [PVCToEdit, setPVCToEdit] = useState<any>(null);
+  const [addNewInwardModal, setAddNewInwardModal] = useState(false);
+  const [editInwardModal, setEditInwardModal] = useState(false);
+   const [editingInwardId, setEditingInwardId] = useState<number | null>(null);
+  
+  const [InwardoEdit, setInwardToEdit] = useState<any>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+  const searchRef = useRef(searchTerm);
+ 
 
-  const [PVCData, setPVCData] = useState([
-    {
-      id: 1,
-      supplier: "Supplier A",
-      pvc: "PVC-20",
-      newRollNo: "R001",
-      batchNo: "B001",
-      qtyKG: "200",
-      qtyMTR: "50",
-      comments: "Sample",
-    },
-    {
-      id: 2,
-      supplier: "Supplier B",
-      pvc: "PVC-25",
-      newRollNo: "R002",
-      batchNo: "B002",
-      qtyKG: "300",
-      qtyMTR: "60",
-      comments: "Test",
-    },
-  ]);
+ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
+  const [deleteInwardId, setDeleteInwardId] = useState<number | null>(null);
+  const deleteButtonRef = useRef(null);
 
   useEffect(() => {
+    filterValueRef.current = filterValue;
+  }, [filterValue]);
+
+  const initTabulator = () => {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      data: PVCData,
-      layout: "fitColumns",
-      responsiveLayout: false,
+      ajaxURL: `${BASE_URL}/api/pvcinward`,
+      ajaxConfig: {
+        method: "GET",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      },
+      ajaxParams: () => {
+        const page = tabulator.current?.getPage() || 1;
+        const size = tabulator.current?.getPageSize() || 10;
+
+        const params: any = { page, size };
+        if (filterValueRef.current) {
+          params["filter[0][type]"] = "like";
+          params["filter[0][value]"] = filterValueRef.current;
+        }
+        return params;
+      },
+      ajaxResponse: (url, params, response) => {
+        return {
+          last_page: Math.ceil(response.totalCount / (params.size || 10)),
+          data: response.items,
+        };
+      },
+      ajaxContentType: "json",
       pagination: true,
+      paginationMode: "remote",
+      filterMode: "remote",
+      sortMode: "remote",
+      layout: "fitColumns",
+      responsiveLayout: "collapse",
+      placeholder: "No matching records found",
       paginationSize: 10,
-      paginationSizeSelector: [10, 20, 30, 40],
-     
+      paginationSizeSelector: [10, 20, 30, 50],
       columns: [
-        { title: "Sr.No", formatter: "rownum", width: 80 },
-        { title: "Supplier", field: "supplier" },
-        { title: "PVC", field: "pvc" },
-        { title: "New Roll No", field: "newRollNo" },
-        { title: "Batch No", field: "batchNo" },
-        { title: "QTY KG", field: "qtyKG" },
-        { title: "QTY MTR", field: "qtyMTR" },
-        { title: "Comments", field: "comments" },
+        { title: "Sr.No", hozAlign: "center",headerHozAlign: "center",formatter: "rownum", width: 80 },
+        { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 150 },
+        { title: "PVC", hozAlign: "center", headerHozAlign: "center", field: "pvcMasterName", minWidth: 150 },
+        { title: "New Roll No", hozAlign: "center", headerHozAlign: "center", field: "new_RollNo", minWidth: 100 },
+        { title: "Batch No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 100 },
+        { title: "QTY (kg)", hozAlign: "center", headerHozAlign: "center", field: "qty_kg", minWidth: 200 },
+        { title: "QTY (MTR)", hozAlign: "center", headerHozAlign: "center", field: "qty_Mtr", minWidth: 200 },
+        { title: "Comments", hozAlign: "center", headerHozAlign: "center", field: "comments", minWidth: 200 },
+
         {
           title: "Actions",
-          width: 200,
-          formatter(cell) {
+          field: "actions",
+          hozAlign: "center",
+          headerHozAlign: "center",
+          minWidth: 150,
+          formatter: (cell) => {
             const container = document.createElement("div");
-            container.className =
-              "flex lg:justify-center items-center gap-2";
+container.className = "flex justify-center items-center gap-2";
 
-            const rowData: any = cell.getRow().getData();
-
+            const rowData = cell.getRow().getData();
             const actions = [
               {
                 label: "Edit",
                 icon: "check-square",
-                classes:
-                  "bg-green-100 hover:bg-green-200 text-green-800",
+                classes: "bg-green-100 hover:bg-green-200 text-green-800",
                 onClick: () => {
-                  setPVCToEdit(rowData);
-                  setEditModal(true);
+                  setEditingInwardId(rowData.id);
+                  setEditInwardModal(true);
                 },
+                
               },
               {
                 label: "Delete",
                 icon: "trash-2",
-                classes:
-                  "bg-red-100 hover:bg-red-200 text-red-800",
+                action: "delete",
+                classes: "bg-red-100 hover:bg-red-200 text-red-800",
                 onClick: () => {
-                  if (
-                    confirm("Are you sure you want to delete this PVC?")
-                  ) {
-                    setPVCData((prev) =>
-                      prev.filter((r) => r.id !== rowData.id)
-                    );
-                  }
+                  setDeleteInwardId(rowData.id);
+                  setDeleteConfirmationModal(true);
                 },
               },
             ];
 
             actions.forEach(({ label, icon, classes, onClick }) => {
-              const button = document.createElement("a");
-              button.href = "javascript:;";
-              button.className = `action-btn inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes}`;
-              button.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
-
-              button.addEventListener("click", (e) => {
+              const btn = document.createElement("a");
+              btn.href = "javascript:;";
+              btn.className = `action-btn inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes}`;
+              btn.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
+              btn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 onClick();
               });
-
-              container.appendChild(button);
+              container.appendChild(btn);
             });
-
             return container;
           },
         },
+        
       ],
     });
 
     tabulator.current.on("renderComplete", () => {
-      createIcons({
-        icons,
-        attrs: { "stroke-width": 1.5 },
-        nameAttr: "data-lucide",
-      });
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     });
+  };
 
-    return () => tabulator.current?.destroy();
+  const refreshTable = () => {
+    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
+  };
+
+const handleFilterChange = (value: string) => {
+  setFilterValue(value);
+
+  if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+  
+  searchTimeout.current = setTimeout(() => {
+    searchValueRef.current = value.trim();
+
+    if (tabulator.current) {
+      tabulator.current.setData(`${BASE_URL}/api/pvcinward`, {
+        params: {
+          page: 1,
+          size: tabulator.current.getPageSize() || 10,
+          ...(searchValueRef.current
+            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
+            : {}),
+        },
+      });
+    }
+  }, 600);
+};
+
+
+
+
+
+  const handleDeleteWidth = async () => {
+    if (!deleteInwardId) return;
+
+    try {
+      await axios.delete(`${BASE_URL}/api/pvcinward/${deleteInwardId}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      setDeleteConfirmationModal(false);
+      setDeleteInwardId(null);
+      refreshTable();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete Inward");
+    }
+  };
+
+  useEffect(() => {
+    initTabulator();
+    const handleResize = () => {
+      tabulator.current?.redraw();
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
- 
-  useEffect(() => {
-    tabulator.current?.replaceData(PVCData);
-  }, [PVCData]);
-
- 
-  const handleAdd = (data: any) => {
-    setPVCData((prev) => [...prev, { id: prev.length + 1, ...data }]);
-  };
-
-  const handleUpdate = (data: any) => {
-    setPVCData((prev) =>
-      prev.map((row) => (row.id === data.id ? data : row))
-    );
-  };
-
-
-  useEffect(() => {
-    tabulator.current?.replaceData(PVCData);
-  }, [PVCData]);
-
-
-  const handleFilterChange = (value: string) => {
-    setFilterValue(value);
-
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-
-    debounceTimeout.current = setTimeout(() => {
-      if (tabulator.current) {
-        const filtered = PVCData.filter((row) =>
-          row.supplier.toLowerCase().includes(filterValueRef.current.toLowerCase())
-        );
-        tabulator.current.replaceData(filtered);
-      }
-    }, 300);
-  };
 
   return (
     <>
-      <div className="flex items-center mt-8">
-        <h2 className="mr-auto text-lg font-medium">PVC Inward Table</h2>
-        <Button
-          variant="primary"
-          className="shadow-md"
-          onClick={() => setAddModal(true)}
-        >
-          Add PVC
+      <div className="flex flex-col sm:flex-row items-center mt-8 mb-4">
+        <h2 className="mr-auto text-lg font-medium">Inward List Table</h2>
+        <Button variant="primary" onClick={() => setAddNewInwardModal(true)}>
+          Add Inward
         </Button>
       </div>
 
-      <div className="p-5 mt-5 box">
+      <div className="p-5 box">
         <div className="flex items-center mb-3">
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Search ..."
+            placeholder="Search batch no"
             className="w-64"
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}
           />
         </div>
+
         <div className="overflow-x-auto">
-          <div ref={tableRef} className="mt-5"></div>
+          <div ref={tableRef}></div>
         </div>
       </div>
 
-      <CreatePVCInward
-        open={addModal}
-        onClose={() => setAddModal(false)}
-        onAddPVCProduct={handleAdd}
+      <CreatePVCInwardList
+        open={addNewInwardModal}
+        onClose={() => setAddNewInwardModal(false)}
+        onSuccess={refreshTable}
       />
 
       <EditPVCInward
-        open={editModal}
-        onClose={() => setEditModal(false)}
-        data={PVCToEdit}
-        onUpdate={handleUpdate}
+        open={editInwardModal}
+        onClose={() => setEditInwardModal(false)}
+         InwardId={editingInwardId}
+          onSuccess={refreshTable}
       />
+
+      <Dialog
+        open={deleteConfirmationModal}
+        onClose={() => setDeleteConfirmationModal(false)}
+        initialFocus={deleteButtonRef}
+      >
+        <Dialog.Panel>
+          <div className="p-5 text-center">
+            <Lucide icon="Trash" className="w-16 h-16 mx-auto mt-3 text-danger" />
+            <div className="mt-5 text-3xl">Are you sure?</div>
+            <div className="mt-2 text-slate-500">
+              Do you really want to <span className="text-danger">delete</span> this Gramge?
+            </div>
+          </div>
+          <div className="px-5 pb-8 text-center">
+            <Button
+              variant="outline-secondary"
+              type="button"
+              onClick={() => setDeleteConfirmationModal(false)}
+              className="w-24 mr-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              type="button"
+              className="w-24"
+              ref={deleteButtonRef}
+              onClick={handleDeleteWidth}
+            >
+              Delete
+            </Button>
+          </div>
+        </Dialog.Panel>
+      </Dialog>
     </>
   );
 }
 
 export default Main;
+

@@ -83,8 +83,8 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
           width: 80,
         },
         { title: "Name", field: "name", hozAlign: "center",  headerHozAlign: "center",minWidth: 180 },
-        { title: "GRM", field: "grm", hozAlign: "center",  headerHozAlign: "center",minWidth: 200 },
-        { title: "Colour", field: "colour",hozAlign: "center",  headerHozAlign: "center", minWidth: 200 },
+        { title: "GRM", field: "fGramageMasterName", hozAlign: "center",  headerHozAlign: "center",minWidth: 200 },
+        { title: "Colour", field: "colourMasterName",hozAlign: "center",  headerHozAlign: "center", minWidth: 200 },
         { title: "Comments", field: "comments", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
 
         {

@@ -149,7 +149,7 @@ const EditGSM: React.FC<EditGSMProps> = ({
           </Button>
           <Button
             variant="primary"
-            className="w-24 bg-blue-600 hover:bg-blue-700"
+            className="w-24"
             onClick={handleUpdate}
           >
             Update

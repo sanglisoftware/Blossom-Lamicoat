@@ -82,9 +82,9 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
           width: 80,
         },
         { title: "Name", field: "name", hozAlign: "center",  headerHozAlign: "center",minWidth: 180 },
-        { title: "Gramage", field: "gramage", hozAlign: "center",  headerHozAlign: "center",minWidth: 200 },
-        { title: "WIdth", field: "width", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
-        { title: "Colour", field: "colour",hozAlign: "center",  headerHozAlign: "center", minWidth: 200 },
+        { title: "Gramage", field: "gramageMasterName", hozAlign: "center",  headerHozAlign: "center",minWidth: 200 },
+        { title: "WIdth", field: "widthMasterName", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
+        { title: "Colour", field: "colourMasterName",hozAlign: "center",  headerHozAlign: "center", minWidth: 200 },
         { title: "Comments", field: "comments", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
 
         {
@@ -243,7 +243,7 @@ const handleFilterChange = (value: string) => {
 
       <EditProduct
         open={editPVcproductModal}
-      PVcproductId={editingPVcproductId}
+      productId={editingPVcproductId}
         onClose={() => setEditPVcproductModal(false)}
         onSuccess={refreshTable}
       />

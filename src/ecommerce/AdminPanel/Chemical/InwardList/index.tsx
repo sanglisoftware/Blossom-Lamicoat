@@ -1,160 +1,231 @@
 import { useState, useRef, useEffect, createRef } from "react";
-import { FormInput, FormLabel } from "@/components/Base/Form";
+import Button from "@/components/Base/Button";
+import { FormInput } from "@/components/Base/Form";
 import { createIcons, icons } from "lucide";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
-import EditInwardList from "./EditInwardList";
 import "@/assets/css/vendors/tabulator.css";
+import axios from "axios";
+import { BASE_URL } from "@/ecommerce/config/config";
+import { Dialog } from "@/components/Base/Headless";
+import Lucide from "@/components/Base/Lucide";
+import EditInwardList from "./EditInwardList";
+import AddInwardList from "./AddInwardList";
+
+
+interface Inward {
+  id: number;
+  ChemicalName: string;
+  Qty: number;
+  Supplier: string;
+  BatchNo: number;
+}
 
 function Main() {
+  const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
-  const tabulator = useRef<Tabulator>();
+  const tabulator = useRef<Tabulator | null>(null);
+  const searchValueRef = useRef("");
+const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  const [searchTerm, setSearchTerm] = useState("");
+  const [filterValue, setFilterValue] = useState("");
+  const filterValueRef = useRef(filterValue);
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [addNewInwardModal, setAddNewInwardModal] = useState(false);
+  const [editInwardModal, setEditInwardModal] = useState(false);
+   const [editingInwardId, setEditingInwardId] = useState<number | null>(null);
+  
+  const [InwardoEdit, setInwardToEdit] = useState<any>(null);
+    const [searchTerm, setSearchTerm] = useState("");
   const searchRef = useRef(searchTerm);
+ 
 
-  const [editInwardlistModal, setEditInwardListModal] = useState(false);
-  const [InwardToEdit, setInwardToEdit] = useState<any>(null);
-
-  const [tableData, setTableData] = useState([
-    { id: 1, Name: "PVC RESIN PAWDER", QTY: "", Supplier: "", Batch_No: "" },
-    { id: 2, Name: "DOP P 80", QTY: "", Supplier: "", Batch_No: "" },
-    { id: 3, Name: "CPW 52 AD", QTY: "", Supplier: "", Batch_No: "" },
-  ]);
+ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
+  const [deleteInwardId, setDeleteInwardId] = useState<number | null>(null);
+  const deleteButtonRef = useRef(null);
 
   useEffect(() => {
-    searchRef.current = searchTerm;
-  }, [searchTerm]);
+    filterValueRef.current = filterValue;
+  }, [filterValue]);
 
-  useEffect(() => {
+  const initTabulator = () => {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      data: tableData,
+      ajaxURL: `${BASE_URL}/api/chemicalinward`,
+      ajaxConfig: {
+        method: "GET",
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      },
+      ajaxParams: () => {
+        const page = tabulator.current?.getPage() || 1;
+        const size = tabulator.current?.getPageSize() || 10;
+
+        const params: any = { page, size };
+        if (filterValueRef.current) {
+          params["filter[0][type]"] = "like";
+          params["filter[0][value]"] = filterValueRef.current;
+        }
+        return params;
+      },
+      ajaxResponse: (url, params, response) => {
+        return {
+          last_page: Math.ceil(response.totalCount / (params.size || 10)),
+          data: response.items,
+        };
+      },
+      ajaxContentType: "json",
+      pagination: true,
+      paginationMode: "remote",
+      filterMode: "remote",
+      sortMode: "remote",
       layout: "fitColumns",
       responsiveLayout: "collapse",
-      pagination: true,
-    paginationSize: 10,
-    paginationSizeSelector: [10, 20, 30, 40],
       placeholder: "No matching records found",
-
+      paginationSize: 10,
+      paginationSizeSelector: [10, 20, 30, 50],
       columns: [
+        { title: "Sr.No", hozAlign: "center",headerHozAlign: "center",formatter: "rownum", width: 80 },
+        { title: "Chemical Name", hozAlign: "center", headerHozAlign: "center", field: "chemicalMasterName", minWidth: 200 },
+        { title: "QTY", hozAlign: "center", headerHozAlign: "center", field: "qty", minWidth: 200 },
+        { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 200 },
+        { title: "Batch No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 200 },
+
         {
-          title: "Sr.No",
-          formatter: "rownum",
+          title: "Actions",
+          field: "actions",
           hozAlign: "center",
-          width: 80,
-        },
-        {
-          title: "Chemical Name",
-          field: "Name",
-          minWidth: 200,
-        },
-        {
-          title: "QTY",
-          field: "QTY",
-          minWidth: 120,
-        },
-        {
-          title: "Supplier",
-          field: "Supplier",
-          minWidth: 180,
-        },
-        {
-          title: "Batch No",
-          field: "Batch_No",
+          headerHozAlign: "center",
           minWidth: 150,
+          formatter: (cell) => {
+            const container = document.createElement("div");
+container.className = "flex justify-center items-center gap-2";
+
+            const rowData = cell.getRow().getData();
+            const actions = [
+              {
+                label: "Edit",
+                icon: "check-square",
+                classes: "bg-green-100 hover:bg-green-200 text-green-800",
+                onClick: () => {
+                  setEditingInwardId(rowData.id);
+                  setEditInwardModal(true);
+                },
+                
+              },
+              {
+                label: "Delete",
+                icon: "trash-2",
+                action: "delete",
+                classes: "bg-red-100 hover:bg-red-200 text-red-800",
+                onClick: () => {
+                  setDeleteInwardId(rowData.id);
+                  setDeleteConfirmationModal(true);
+                },
+              },
+            ];
+
+            actions.forEach(({ label, icon, classes, onClick }) => {
+              const btn = document.createElement("a");
+              btn.href = "javascript:;";
+              btn.className = `action-btn inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md ${classes}`;
+              btn.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i> ${label}`;
+              btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                onClick();
+              });
+              container.appendChild(btn);
+            });
+            return container;
+          },
         },
-        {
-  title: "Actions",
-  hozAlign: "center",
-  headerHozAlign: "center",
-  minWidth: 180,
-  formatter(cell) {
-    const container = document.createElement("div");
-    container.className = "flex justify-center items-center gap-2";
-
-    const rowData = cell.getRow().getData();
-
-    const actions = [
-      {
-        label: "Edit",
-        icon: "edit",
-        classes: "bg-green-100 hover:bg-green-200 text-green-800",
-        onClick: () => {
-          setInwardToEdit({
-            id: rowData.id,
-            ChemicalName: rowData.Name,
-            QTY: rowData.QTY,
-            Supplier: rowData.Supplier,
-            Batch_No: rowData.Batch_No,
-          });
-          setEditInwardListModal(true);
-        },
-      },
-      {
-        label: "Delete",
-        icon: "trash-2",
-        classes: "bg-red-100 hover:bg-red-200 text-red-800",
-        onClick: () => {
-          if (confirm("Are you sure you want to delete this record?")) {
-            setTableData((prev) =>
-              prev.filter((r) => r.id !== rowData.id)
-            );
-          }
-        },
-      },
-    ];
-
-    actions.forEach(({ label, icon, classes, onClick }) => {
-      const button = document.createElement("a");
-      button.href = "javascript:;";
-      button.className = `inline-flex items-center px-3 py-1.5 text-sm rounded-md ${classes}`;
-      button.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 mr-1"></i>${label}`;
-
-      button.addEventListener("click", (e) => {
-        e.stopPropagation();
-        onClick();
-      });
-
-      container.appendChild(button);
-    });
-
-    return container;
-  },
-},
-
+        
       ],
     });
 
     tabulator.current.on("renderComplete", () => {
-      createIcons({ icons, attrs: { "stroke-width": 1.5 } });
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     });
-  }, [tableData]);
+  };
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
+  const refreshTable = () => {
+    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
+  };
+
+const handleFilterChange = (value: string) => {
+  setFilterValue(value);
+
+  if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+  
+  searchTimeout.current = setTimeout(() => {
+    searchValueRef.current = value.trim();
+
     if (tabulator.current) {
-      tabulator.current.setFilter("Name", "like", value);
+      tabulator.current.setData(`${BASE_URL}/api/chemicalinward`, {
+        params: {
+          page: 1,
+          size: tabulator.current.getPageSize() || 10,
+          ...(searchValueRef.current
+            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
+            : {}),
+        },
+      });
+    }
+  }, 600);
+};
+
+
+
+
+
+  const handleDeleteWidth = async () => {
+    if (!deleteInwardId) return;
+
+    try {
+      await axios.delete(`${BASE_URL}/api/chemicalinward/${deleteInwardId}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      setDeleteConfirmationModal(false);
+      setDeleteInwardId(null);
+      refreshTable();
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete Inward");
     }
   };
 
+  useEffect(() => {
+    initTabulator();
+    const handleResize = () => {
+      tabulator.current?.redraw();
+      createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+
   return (
     <>
-      {/* Header */}
-      <div className="flex items-center mt-8">
-        <h2 className="mr-auto text-lg font-medium">Chemical Table</h2>
+      <div className="flex flex-col sm:flex-row items-center mt-8 mb-4">
+        <h2 className="mr-auto text-lg font-medium">Inward List Table</h2>
+        <Button variant="primary" onClick={() => setAddNewInwardModal(true)}>
+          Add Inward
+        </Button>
       </div>
 
-      {/* Table Box */}
-      <div className="p-5 mt-5 box">
-        <div className="flex items-center gap-2 mb-3">
-          <FormLabel>Search:</FormLabel>
+      <div className="p-5 box">
+        <div className="flex items-center mb-3">
+          <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Enter chemical name..."
+            placeholder="Search batch no"
             className="w-64"
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
+            value={filterValue}
+            onChange={(e) => handleFilterChange(e.target.value)}
           />
         </div>
 
@@ -163,29 +234,56 @@ function Main() {
         </div>
       </div>
 
-      {/* Edit Modal */}
-      <EditInwardList
-        open={editInwardlistModal}
-        onClose={() => setEditInwardListModal(false)}
-        chemicalData={InwardToEdit}
-        onUpdateInward={(updated) => {
-          setTableData((prev) =>
-            prev.map((row) =>
-              row.id === updated.id
-                ? {
-                    id: updated.id,
-                    Name: updated.ChemicalName,
-                    QTY: updated.QTY,
-                    Supplier: updated.Supplier,
-                    Batch_No: updated.Batch_No,
-                  }
-                : row
-            )
-          );
-        }}
+      <AddInwardList
+        open={addNewInwardModal}
+        onClose={() => setAddNewInwardModal(false)}
+        onSuccess={refreshTable}
       />
+
+      <EditInwardList
+        open={editInwardModal}
+        onClose={() => setEditInwardModal(false)}
+         InwardId={editingInwardId}
+          onSuccess={refreshTable}
+      />
+
+      <Dialog
+        open={deleteConfirmationModal}
+        onClose={() => setDeleteConfirmationModal(false)}
+        initialFocus={deleteButtonRef}
+      >
+        <Dialog.Panel>
+          <div className="p-5 text-center">
+            <Lucide icon="Trash" className="w-16 h-16 mx-auto mt-3 text-danger" />
+            <div className="mt-5 text-3xl">Are you sure?</div>
+            <div className="mt-2 text-slate-500">
+              Do you really want to <span className="text-danger">delete</span> this Gramge?
+            </div>
+          </div>
+          <div className="px-5 pb-8 text-center">
+            <Button
+              variant="outline-secondary"
+              type="button"
+              onClick={() => setDeleteConfirmationModal(false)}
+              className="w-24 mr-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              type="button"
+              className="w-24"
+              ref={deleteButtonRef}
+              onClick={handleDeleteWidth}
+            >
+              Delete
+            </Button>
+          </div>
+        </Dialog.Panel>
+      </Dialog>
     </>
   );
 }
 
 export default Main;
+

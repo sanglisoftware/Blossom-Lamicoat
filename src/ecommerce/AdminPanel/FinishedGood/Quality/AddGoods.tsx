@@ -5,9 +5,10 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config"
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
 import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
+import TomSelect from "@/components/Base/TomSelect";
 
 interface CreateNewQualityModalProps {
   open: boolean;
@@ -15,6 +16,19 @@ interface CreateNewQualityModalProps {
   onSuccess: () => void; 
 }
 
+
+interface GSMGLMOptions {
+  id: number;
+  name: string;
+  isActive: number;
+}
+
+
+interface ColourOptions {
+  id: number;
+  name: string;
+  isActive: number;
+}
 
 const AddGoods: React.FC<CreateNewQualityModalProps> = ({
   open,
@@ -24,12 +38,16 @@ const AddGoods: React.FC<CreateNewQualityModalProps> = ({
    const token = localStorage.getItem("token");
 
   const [formData, setFormData] = useState({
-    Name: "",
-    Comments: "",
-    gsM_GLM: "",
-    Colour: "",
-
+    name: "",
+    comments: "",
+    gsmglmMasterId: "",
+    colourMasterId: "",
   });
+  const [gsmglm, setGsmglm] = useState<GSMGLMOptions[]>([]);
+  const [colours, setColours] = useState<ColourOptions[]>([]);
+
+    const [gsmglmLoaded, setGsmglmLoaded] = useState(false);
+  const [colourLoaded, setColourLoaded] = useState(false);
 
 
 const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -44,14 +62,76 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     });
 
   const clearFormData = () =>
-    setFormData({ Name: "",   gsM_GLM: "", Colour: "", Comments: "", });
+    setFormData({ name: "",   gsmglmMasterId: "", colourMasterId: "", comments: "", });
+
+
+
+  /* ---------------- FETCH DATA ---------------- */
+
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchAll = async () => {
+      try {
+        setGsmglmLoaded(false);
+        setColourLoaded(false);
+
+        const [gsmRes, cRes] = await Promise.all([
+          axios.get(`${BASE_URL}/api/gsm`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${BASE_URL}/api/colour`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        setGsmglm(gsmRes.data.items || []);
+        setColours(cRes.data.items || []);
+
+        setGsmglmLoaded(true);
+        setColourLoaded(true);
+      } catch (error) {
+        console.error("Dropdown fetch error:", error);
+      }
+    };
+
+    fetchAll();
+  }, [open, token]);
+
+  /* ---------------- FILTER ACTIVE ---------------- */
+
+  const activeGsmglm = useMemo(
+    () => gsmglm.filter((g) => g.isActive === 1),
+    [gsmglm]
+  );
+
+  const activeColours = useMemo(
+    () => colours.filter((c) => c.isActive === 1),
+    [colours]
+  );
+
+  /* ---------------- HANDLE CHANGE ---------------- */
+
+  const handleGsmglmChange = (e: { target: { value: string } }) => {
+  setFormData((prev) => ({
+    ...prev,
+    gsmglmMasterId: e.target.value,
+  }));
+};
+
+const handleColourChange = (e: { target: { value: string } }) => {
+  setFormData((prev) => ({
+    ...prev,
+    colourMasterId: e.target.value,
+  }));
+};
 
   const handleSubmit = async () => {
     const errors: Record<string, string> = {};
-    if (!formData.Name) errors.Name = "Name is required";
-    if (!formData. gsM_GLM) errors. gsM_GLM = " GSM_GLM required";
-    if (!formData.Colour) errors.Colour = "Colour are required";
-    if (!formData.Comments) errors.Comments = "Comments are required";
+    if (!formData.name) errors.name = "Name is required";
+    if (!formData.gsmglmMasterId) errors.gsmglmMasterId = "GSM_GLM is required";
+    if (!formData.colourMasterId) errors.colourMasterId = "Colour is required";
+    if (!formData.comments) errors.comments = "Comments are required";
 
 
     setFormErrors(errors);
@@ -59,10 +139,10 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
     try {
       const payload = {
-        Name: formData.Name,
-        Comments: formData.Comments,
-        gsM_GLM: formData. gsM_GLM,
-        Colour: formData.Colour,
+        name: formData.name,
+        comments: formData.comments,
+        gsmglmMasterId: formData.gsmglmMasterId,
+        colourMasterId: formData.colourMasterId,
         isActive: 1,
       };
 
@@ -106,14 +186,14 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
               <FormInput
                 type="text"
                 placeholder="Enter  Name"
-               value={formData.Name}
+               value={formData.name}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setFormData({ ...formData, Name: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Name: "" }));
+                  setFormData({ ...formData, name: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, name: "" }));
                 }}
               />
-              {formErrors.Name && <p className="text-sm text-red-500">{formErrors.Name}</p>}
+              {formErrors.name && <p className="text-sm text-red-500">{formErrors.name}</p>}
             </div>
 
          <div>
@@ -123,39 +203,61 @@ const [formErrors, setFormErrors] = useState<Record<string, string>>({});
                 placeholder="Enter Comments"
                onChange={(e) => {
                   const value = e.target.value;
-                  setFormData({ ...formData, Comments: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Comments: "" }));
+                  setFormData({ ...formData, comments: value });
+                  if (value.trim()) setFormErrors((prev) => ({ ...prev, comments: "" }));
                 }}
               />
-              {formErrors.Comments && <p className="text-sm text-red-500">{formErrors.Comments}</p>}
+              {formErrors.comments && <p className="text-sm text-red-500">{formErrors.comments}</p>}
             </div>
 
-            <div>
-              <FormLabel>GSM/GLM</FormLabel>
-              <FormInput
-                type="text"
-                placeholder="Enter GSM/GLM"
-               onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, gsM_GLM: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, gsM_GLM: "" }));
-                }}
-              />
-              {formErrors.gsM_GLM && <p className="text-sm text-red-500">{formErrors.gsM_GLM}</p>}
+          <div>
+              <FormLabel>GSM/SLM</FormLabel>
+              {gsmglmLoaded ? (
+                <TomSelect
+                  value={formData.gsmglmMasterId}
+                  onChange={handleGsmglmChange}
+                  options={{ placeholder: "Select GSM/GLM" }}
+                >
+                  <option value="">Select GSM/GLM</option>
+                  {activeGsmglm.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p>Loading...</p>
+              )}
+              {formErrors.gsmglmMasterId && (
+                <p className="text-red-500 text-sm">
+                  {formErrors.gsmglmMasterId}
+                </p>
+              )}
             </div>
 
-            <div>
+           <div>
               <FormLabel>Colour</FormLabel>
-              <FormInput
-                type="text"
-                placeholder="Enter Colour"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, Colour: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, Colour: "" }));
-                }}
-              />
-              {formErrors.Colour && <p className="text-sm text-red-500">{formErrors.Colour}</p>}
+              {colourLoaded ? (
+                <TomSelect
+                  value={formData.colourMasterId}
+                  onChange={handleColourChange}
+                  options={{ placeholder: "Select Colour" }}
+                >
+                  <option value="">Select Colour</option>
+                  {activeColours.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p>Loading...</p>
+              )}
+              {formErrors.colourMasterId && (
+                <p className="text-red-500 text-sm">
+                  {formErrors.colourMasterId}
+                </p>
+              )}
             </div>
 
            
