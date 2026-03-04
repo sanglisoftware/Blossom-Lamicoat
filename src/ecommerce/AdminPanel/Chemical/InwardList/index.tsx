@@ -8,16 +8,19 @@ import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
 import { Dialog } from "@/components/Base/Headless";
 import Lucide from "@/components/Base/Lucide";
-import EditInwardList from "./EditInwardList";
 import AddInwardList from "./AddInwardList";
+import EditInwardList from "./EditInwardList";
 
 
-interface Inward {
+
+interface ChemicalInward {
   id: number;
-  ChemicalName: string;
-  Qty: number;
+  ChemicalrName: string;
+  QTY: number;
   Supplier: string;
   BatchNo: number;
+
+ 
 }
 
 function Main() {
@@ -87,11 +90,11 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
       paginationSizeSelector: [10, 20, 30, 50],
       columns: [
         { title: "Sr.No", hozAlign: "center",headerHozAlign: "center",formatter: "rownum", width: 80 },
-        { title: "Chemical Name", hozAlign: "center", headerHozAlign: "center", field: "chemicalMasterName", minWidth: 200 },
-        { title: "QTY", hozAlign: "center", headerHozAlign: "center", field: "qty", minWidth: 200 },
-        { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 200 },
-        { title: "Batch No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 200 },
-
+        { title: "Chemical", hozAlign: "center", headerHozAlign: "center", field: "chemicalMasterName", minWidth: 150 },
+       { title: "QTY", hozAlign: "center", headerHozAlign: "center", field: "qty", minWidth: 200 },        
+        { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 150 },     
+        { title: "Batch No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 100 },
+       
         {
           title: "Actions",
           field: "actions",
@@ -257,7 +260,7 @@ const handleFilterChange = (value: string) => {
             <Lucide icon="Trash" className="w-16 h-16 mx-auto mt-3 text-danger" />
             <div className="mt-5 text-3xl">Are you sure?</div>
             <div className="mt-2 text-slate-500">
-              Do you really want to <span className="text-danger">delete</span> this Gramge?
+              Do you really want to <span className="text-danger">delete</span> this Inward?
             </div>
           </div>
           <div className="px-5 pb-8 text-center">

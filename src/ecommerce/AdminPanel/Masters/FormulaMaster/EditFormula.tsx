@@ -224,60 +224,7 @@ useEffect(() => {
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
     //Form Submission: Save button click
-    // const handleSubmit = async () => {
-    //     const errors: Record<string, string> = {};
-
-    //     if (!formData.formulaMasterId) errors.formulaMasterId = "First name is required.";
-    //     if (!formData.chemicalMasterId) errors.middleName = "chemicalMasterId is required.";
-    //     if (!formData.qty) errors.qty = "qty is required.";
-
-
-    //     const payload =
-    //     {
-    //         formulaMasterId: formData.formulaMasterId,
-    //         chemicalMasterId: formData.chemicalMasterId,
-    //         qty: formData.qty,
-    //     }
-
-
-    //     //API CALL
-    //     try {
-    //         const response = await axios.put(
-    //             `${BASE_URL}/api/formulachemicaltransaction/${formulaMasterId}`,
-    //             payload,
-    //             {
-    //                 headers: {
-    //                     Authorization: `Bearer ${token}`
-    //                 }
-    //             }
-    //         );
-
-    //         if (response.status === 200 || response.status === 201) {
-    //             setFormErrors({});
-    //             onClose();
-
-    //             //success modal
-    //             setSuccessModalConfig({
-    //                 title: "Employee Update Successfully",
-    //                 subtitle: "The new Employee has been updated from the system.",
-    //                 icon: "CheckCircle",
-    //                 buttonText: "Ok",
-    //                 onButtonClick: () => {
-    //                     setIsSuccessModalOpen(false);
-    //                 }
-    //             });
-    //             setIsSuccessModalOpen(true);
-    //             if (onSuccess) {
-    //                 onSuccess();
-    //             }
-    //         } else {
-    //             throw new Error("Unexpected response status");
-    //         }
-    //     } catch (error: any) {
-    //         console.error("Submission error:", error);
-    //         alert(error.response?.data?.message || "Something went wrong.");
-    //     }
-    // }
+  
 
     const handleSubmit = async () => {
         try {
@@ -289,10 +236,18 @@ useEffect(() => {
                     qty: Number(c.qty)
                 }));
 
+            // const payload = {
+            //     formulaMasterId: Number(formData.formulaMasterId),
+            //     chemicals: filteredChemicals
+            // };
+
             const payload = {
-                formulaMasterId: Number(formData.formulaMasterId),
-                chemicals: filteredChemicals
-            };
+    formulaMasterId: Number(formData.formulaMasterId),
+    chemicals: selectedChemicals.map(c => ({
+        chemicalMasterId: c.chemicalMasterId,
+        qty: c.qty === "" ? 0 : Number(c.qty)
+    }))
+};
 
             const response = await axios.put(
                 `${BASE_URL}/api/formulachemicaltransaction/`,
