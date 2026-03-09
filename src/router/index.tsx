@@ -114,6 +114,7 @@ import SaleryForm from "@/ecommerce/AdminPanel/SaleryManagement/SaleryForm";
 import SaleryReport from "@/ecommerce/AdminPanel/SaleryManagement/SaleryReport";
 import DailyAttendence from "@/ecommerce/AdminPanel/SaleryManagement/DailyAttendence";
 import AttendenceReport from "@/ecommerce/AdminPanel/SaleryManagement/AttendenceReport";
+import CreditSalery from "@/ecommerce/AdminPanel/SaleryManagement/CreditSalery";
 import DailyProductionRecord from "@/ecommerce/AdminPanel/Report/DailyProductionRecord";
 import BatchingDetails from "@/ecommerce/AdminPanel/Report/BatchingDetails";
 import FinishedGoodsStock from "@/ecommerce/AdminPanel/Report/FinishedGoodsStock";
@@ -167,10 +168,11 @@ function Router() {
             { path: "supplier", element: <Supplier/> },
             { path: "formula-master", element: <FormulaMaster/> },
 
-            { path: "salery-form", element: <SaleryForm/> },
-            { path: "salery-report", element: <SaleryReport/> },
+            { path: "salary-form", element: <SaleryForm/> },
+            { path: "salary-report", element: <SaleryReport/> },
             { path: "daily-attendence", element: <DailyAttendence/> },
             { path: "attendence-report", element: <AttendenceReport/> },
+            { path: "credit-salary", element: <CreditSalery/> },
 
 
             { path: "daily-production-record", element: <DailyProductionRecord/> },

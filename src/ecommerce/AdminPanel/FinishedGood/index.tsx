@@ -11,7 +11,13 @@ import Lucide from "@/components/Base/Lucide";
 import AddGoods from "./Quality/AddGoods";
 import EditGoods from "./Quality/EditGoods";
 
-
+type QualityRow = {
+  id: number;
+  name?: string;
+  comments?: string;
+  gsmMasterName?: string;
+  colourMasterName?: string;
+};
 
 function Main() {
   const token = localStorage.getItem("token");
@@ -20,10 +26,8 @@ function Main() {
 
   const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
-  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-const searchValueRef = useRef(""); // only updated when debounce triggers
 const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [tableData, setTableData] = useState<QualityRow[]>([]);
 
   const [addQualityModal, setAddQualityModal] = useState(false);
   const [editQualityModal, setEditQualityModal] = useState(false);
@@ -38,37 +42,47 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
     filterValueRef.current = filterValue;
   }, [filterValue]);
 
+  const applyGlobalFilter = (value: string) => {
+    if (!tabulator.current) return;
+
+    const term = value.trim().toLowerCase();
+    if (!term) {
+      tabulator.current.clearFilter(true);
+      return;
+    }
+
+    tabulator.current.setFilter((row: QualityRow) =>
+      [
+        row.name,
+        row.comments,
+        row.gsmMasterName,
+        row.colourMasterName,
+      ].some((fieldValue) =>
+        String(fieldValue ?? "").toLowerCase().includes(term)
+      )
+    );
+  };
+
+  const fetchQualityData = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/quality?page=1&size=1000`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      const items = response?.data?.items ?? response?.data?.Items ?? [];
+      setTableData(items);
+    } catch (error) {
+      console.error("Failed to fetch quality data:", error);
+      setTableData([]);
+    }
+  };
+
   const initTabulator = () => {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      ajaxURL: `${BASE_URL}/api/quality`,
-      ajaxConfig: {
-        method: "GET",
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      },
-      ajaxParams: () => {
-        const page = tabulator.current?.getPage() || 1;
-        const size = tabulator.current?.getPageSize() || 10;
-
-        const params: any = { page, size };
-        if (filterValueRef.current) {
-          params["filter[0][type]"] = "like";
-          params["filter[0][value]"] = filterValueRef.current;
-        }
-        return params;
-      },
-      ajaxResponse: (url, params, response) => {
-        return {
-          last_page: Math.ceil(response.totalCount / (params.size || 10)),
-          data: response.items,
-        };
-      },
-      ajaxContentType: "json",
+      data: tableData,
       pagination: true,
-      paginationMode: "remote",
-      filterMode: "remote",
-      sortMode: "remote",
       layout: "fitColumns",
       responsiveLayout: "collapse",
       placeholder: "No matching records found",
@@ -151,7 +165,7 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
   };
 
   const refreshTable = () => {
-    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
+    fetchQualityData();
   };
 
 const handleFilterChange = (value: string) => {
@@ -159,21 +173,8 @@ const handleFilterChange = (value: string) => {
 
   if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
-  
   searchTimeout.current = setTimeout(() => {
-    searchValueRef.current = value.trim();
-
-    if (tabulator.current) {
-      tabulator.current.setData(`${BASE_URL}/api/quality`, {
-        params: {
-          page: 1,
-          size: tabulator.current.getPageSize() || 10,
-          ...(searchValueRef.current
-            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
-            : {}),
-        },
-      });
-    }
+    applyGlobalFilter(value);
   }, 600);
 };
 
@@ -200,13 +201,22 @@ const handleFilterChange = (value: string) => {
 
   useEffect(() => {
     initTabulator();
+    fetchQualityData();
     const handleResize = () => {
       tabulator.current?.redraw();
       createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      tabulator.current?.destroy();
+    };
   }, []);
+
+  useEffect(() => {
+    tabulator.current?.setData(tableData);
+    applyGlobalFilter(filterValueRef.current);
+  }, [tableData]);
 
 
   return (
@@ -223,7 +233,7 @@ const handleFilterChange = (value: string) => {
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Search ..."
+            placeholder="Search all fields..."
             className="w-64"
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}

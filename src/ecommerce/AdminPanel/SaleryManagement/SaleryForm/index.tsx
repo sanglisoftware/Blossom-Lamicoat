@@ -1,586 +1,4 @@
-// // import { useEffect, useState } from "react";
-// // import Button from "@/components/Base/Button";
-// // import { FormInput, FormLabel } from "@/components/Base/Form";
-// // import TomSelect from "@/components/Base/TomSelect";
-// // import axios from "axios";
-// // import { BASE_URL } from "@/ecommerce/config/config";
-// // import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
-
-
-
-// // interface RoleOptions {
-// //   id: string;
-// //   roleValue: string;
-// //   type?: number; // 0 = Staff, 1 = Worker
-// // }
-
-// // const Main: React.FC = () => {
-// //   const token = localStorage.getItem("token");
-
-// //   const [rolesForTom, setRolesForTom] = useState<RoleOptions[]>([]);
-// //   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-
-// //   const [successModalConfig, setSuccessModalConfig] =
-// //     useState<SuccessModalConfig>({
-// //       title: "",
-// //       subtitle: "",
-// //       icon: "CheckCircle",
-// //       buttonText: "OK",
-// //       onButtonClick: () => { },
-// //     });
-
-// //   const [formData, setFormData] = useState({
-// //     roleId: "",
-// //     type: "",
-// //     attendance: "",
-// //     extraHours: "",
-// //     totalLate: "",
-// //     halfDay: "",
-// //     totalSalary: "",
-// //   });
-
-// //   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-
-// //   useEffect(() => {
-// //     const fetchRoles = async () => {
-// //       try {
-// //         const response = await axios.get<RoleOptions[]>(
-// //           `${BASE_URL}/api/Roles`,
-// //           {
-// //             headers: { Authorization: `Bearer ${token}` },
-// //           }
-// //         );
-
-// //         if (Array.isArray(response.data)) {
-// //           setRolesForTom(response.data);
-// //         }
-// //       } catch (error) {
-// //         console.error("Error fetching roles:", error);
-// //       }
-// //     };
-
-// //     fetchRoles();
-// //   }, [token]);
-
-
-// //   const handleRoleChange = (e: { target: { value: string } }) => {
-// //     const value = e.target.value;
-// //     const selectedRole = rolesForTom.find((r) => r.id === value);
-
-// //     setFormData((prev) => ({
-// //       ...prev,
-// //       roleId: value,
-// //       type:
-// //         selectedRole?.type === 1
-// //           ? "Worker"
-// //           : selectedRole?.type === 0
-// //             ? "Staff"
-// //             : "",
-// //     }));
-
-// //     setFormErrors((prev) => ({ ...prev, roleId: "" }));
-// //   };
-
-// //   const handleSubmit = async () => {
-// //     const errors: Record<string, string> = {};
-
-// //     if (!formData.roleId) errors.roleId = "Role is required";
-// //     if (!formData.attendance) errors.attendance = "Attendance is required";
-// //     if (!formData.totalSalary)
-// //       errors.totalSalary = "Total salary is required";
-
-// //     setFormErrors(errors);
-// //     if (Object.keys(errors).length > 0) return;
-
-// //     const payload = {
-// //       roleId: formData.roleId,
-// //       attendance: Number(formData.attendance),
-// //       extraHours: Number(formData.extraHours || 0),
-// //       totalLate: Number(formData.totalLate || 0),
-// //       halfDay: Number(formData.halfDay || 0),
-// //       totalSalary: Number(formData.totalSalary),
-// //     };
-
-// //     try {
-// //       const response = await axios.post(
-// //         `${BASE_URL}/api/salary`,
-// //         payload,
-// //         {
-// //           headers: { Authorization: `Bearer ${token}` },
-// //         }
-// //       );
-
-// //       if (response.status === 200 || response.status === 201) {
-// //         clearForm();
-
-// //         setSuccessModalConfig({
-// //           title: "Salary Saved Successfully",
-// //           subtitle: "Salary record saved.",
-// //           icon: "CheckCircle",
-// //           buttonText: "OK",
-// //           onButtonClick: () => setIsSuccessModalOpen(false),
-// //         });
-
-// //         setIsSuccessModalOpen(true);
-// //       }
-// //     } catch (error: any) {
-// //       alert(error?.response?.data?.detail || "Something went wrong");
-// //     }
-// //   };
-
-// //   const clearForm = () => {
-// //     setFormData({
-// //       roleId: "",
-// //       type: "",
-// //       attendance: "",
-// //       extraHours: "",
-// //       totalLate: "",
-// //       halfDay: "",
-// //       totalSalary: "",
-// //     });
-// //     setFormErrors({});
-// //   };
-
-// //   return (
-// //     <div className="p-6">
-// //       <h2 className="text-xl font-medium mb-6">Salary Form</h2>
-
-// //       <form className="box p-5 space-y-4 w-full max-w-xl"
-// //       >
-// //         {/* Staff Name */}
-// //         <div className="col-span-12 sm:col-span-6">
-// //           <FormLabel>Select Role</FormLabel>
-// //           <TomSelect
-// //             value={formData.roleId}
-// //             onChange={handleRoleChange}
-// //             options={{
-// //               placeholder: "Select Role",
-// //               allowEmptyOption: true,
-// //             }}
-// //             className="w-full"
-// //           >
-// //             <option value="">Select Role</option>
-// //             {rolesForTom.map((role) => (
-// //               <option key={role.id} value={role.id}>
-// //                 {role.roleValue}
-// //               </option>
-// //             ))}
-// //           </TomSelect>
-// //           {formErrors.roleId && (
-// //             <p className="text-red-500 text-sm mt-1">
-// //               {formErrors.roleId}
-// //             </p>
-// //           )}
-// //         </div>
-// //         {/* Static Info */}
-// //         <div className="text-sm space-y-1">
-// //           <div>
-// //             <span className="font-medium">Type</span>
-// //             <div className="mt-2 flex gap-4">
-// //               <label className="flex items-center gap-1">
-// //                 <input
-// //                   type="radio"
-// //                   name="type"
-// //                   value="Staff"
-// //                   className="form-radio"
-// //                   checked={formData.type === "Staff"}
-// //                   readOnly
-// //                 />
-// //                 Staff
-// //               </label>
-// //               <label className="flex items-center gap-1">
-// //                 <input
-// //                   type="radio"
-// //                   name="type"
-// //                   value="Worker"
-// //                   className="form-radio"
-// //                   checked={formData.type === "Worker"}
-// //                   readOnly
-// //                 />
-// //                 Worker
-// //               </label>
-// //             </div>
-// //           </div>
-// //           <br />
-// //           <div className="flex gap-6">
-// //             <span>
-// //               <span className="font-medium">Salary</span> = 12,000
-// //             </span>
-// //             <span>
-// //               <span className="font-medium">One Day</span> = 400
-// //             </span>
-// //           </div>
-// //         </div>
-
-// //         {/* Attendance */}
-// //         <div>
-// //           <FormLabel>Attendance</FormLabel>
-// //           <FormInput
-// //             type="number"
-// //             value={formData.attendance}
-// //             onChange={(e) =>
-// //               setFormData({ ...formData, attendance: e.target.value })
-// //             }
-// //           />
-// //           {formErrors.attendance && (
-// //             <p className="text-red-500 text-sm mt-1">
-// //               {formErrors.attendance}
-// //             </p>
-// //           )}
-// //         </div>
-
-// //         {/* Extra Hours */}
-// //         <div>
-// //           <FormLabel>Extra Hours</FormLabel>
-// //           <FormInput
-// //             type="number"
-// //             value={formData.extraHours}
-// //             onChange={(e) =>
-// //               setFormData({ ...formData, extraHours: e.target.value })
-// //             }
-// //           />
-// //         </div>
-
-// //         {/* Total Late */}
-// //         {/* Total Late & Half Day */}
-// //         <div className="grid grid-cols-2 gap-4">
-// //           <div>
-// //             <FormLabel>Total Late</FormLabel>
-// //             <FormInput
-// //               type="number"
-// //               value={formData.totalLate}
-// //               onChange={(e) =>
-// //                 setFormData({ ...formData, totalLate: e.target.value })
-// //               }
-// //             />
-// //           </div>
-
-// //           <div>
-// //             <FormLabel>Half Day</FormLabel>
-// //             <FormInput
-// //               type="number"
-// //               value={formData.halfDay}
-// //               onChange={(e) =>
-// //                 setFormData({ ...formData, halfDay: e.target.value })
-// //               }
-// //             />
-// //           </div>
-// //         </div>
-
-// //         {/* Total Salary */}
-// //         <div>
-// //           <FormLabel>Total Salary</FormLabel>
-// //           <FormInput
-// //             type="number"
-// //             value={formData.totalSalary}
-// //             onChange={(e) =>
-// //               setFormData({ ...formData, totalSalary: e.target.value })
-// //             }
-// //           />
-// //           {formErrors.totalSalary && (
-// //             <p className="text-red-500 text-sm mt-1">
-// //               {formErrors.totalSalary}
-// //             </p>
-// //           )}
-// //         </div>
-
-// //         <Button variant="primary" type="submit" className="w-24">
-// //           Submit
-// //         </Button>
-// //       </form>
-// //     </div>
-// //   );
-// // };
-
-// // export default Main;
-
-
-
-// import { useEffect, useState } from "react";
-// import Button from "@/components/Base/Button";
-// import { FormInput, FormLabel } from "@/components/Base/Form";
-// import TomSelect from "@/components/Base/TomSelect";
-// import axios from "axios";
-// import { BASE_URL } from "@/ecommerce/config/config";
-
-// interface Employee {
-//   id: number;
-//   firstName: string;
-//   lastName: string;
-//   type: number | string | null;
-// }
-
-// const Main: React.FC = () => {
-//   const token = localStorage.getItem("token");
-
-//   const [employeeList, setEmployeeList] = useState<Employee[]>([]);
-
-//   const [formData, setFormData] = useState({
-//     employeeId: "",
-//     type: null as number | null,
-//     attendance: "",
-//     extraHours: "",
-//     totalLate: "",
-//     halfDay: "",
-//     totalSalary: "",
-//   });
-
-//   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-
-//   // ✅ Fetch Employees
-//   useEffect(() => {
-//     const fetchEmployees = async () => {
-//       try {
-//         const response = await axios.get(
-//           `${BASE_URL}/api/employees`,
-//           {
-//             headers: { Authorization: `Bearer ${token}` },
-//           }
-//         );
-
-//         if (Array.isArray(response.data?.items)) {
-//           setEmployeeList(response.data.items);
-//         }
-//       } catch (error) {
-//         console.error("Error fetching employees:", error);
-//       }
-//     };
-
-//     fetchEmployees();
-//   }, [token]);
-
-//   // ✅ Handle Employee Change (TomSelect compatible)
-//   const handleEmployeeChange = (e: any) => {
-//     const value = e.target.value;
-
-//     const selectedEmployee = employeeList.find(
-//       (emp: any) => emp.id.toString() === value
-//     );
-
-//     console.log("Selected Employee:", selectedEmployee);
-
-//     if (!selectedEmployee) return;
-
-//     setFormData((prev: any) => ({
-//       ...prev,
-//       employeeId: value,
-//       type: selectedEmployee.type, // ✅ Direct assign (already number)
-//     }));
-//   };
-
-//   // ✅ Submit
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-
-//     const errors: Record<string, string> = {};
-
-//     if (!formData.employeeId)
-//       errors.employeeId = "Employee is required";
-//     if (!formData.attendance)
-//       errors.attendance = "Attendance is required";
-//     if (!formData.totalSalary)
-//       errors.totalSalary = "Total salary is required";
-
-//     setFormErrors(errors);
-//     if (Object.keys(errors).length > 0) return;
-
-//     const payload = {
-//       employeeId: Number(formData.employeeId),
-//       attendance: Number(formData.attendance),
-//       extraHours: Number(formData.extraHours || 0),
-//       totalLate: Number(formData.totalLate || 0),
-//       halfDay: Number(formData.halfDay || 0),
-//       totalSalary: Number(formData.totalSalary),
-//     };
-
-//     try {
-//       await axios.post(
-//         `${BASE_URL}/api/salary`,
-//         payload,
-//         {
-//           headers: { Authorization: `Bearer ${token}` },
-//         }
-//       );
-
-//       alert("Salary Saved Successfully");
-//       clearForm();
-//     } catch (error: any) {
-//       alert(error?.response?.data?.detail || "Something went wrong");
-//     }
-//   };
-
-//   const clearForm = () => {
-//     setFormData({
-//       employeeId: "",
-//       type: null,
-//       attendance: "",
-//       extraHours: "",
-//       totalLate: "",
-//       halfDay: "",
-//       totalSalary: "",
-//     });
-//     setFormErrors({});
-//   };
-
-//   return (
-//     <div className="p-6">
-//       <h2 className="text-xl font-medium mb-6">
-//         Salary Form
-//       </h2>
-
-//       <form
-//         className="box p-5 space-y-4 w-full max-w-xl"
-//         onSubmit={handleSubmit}
-//       >
-//         {/* Employee Dropdown */}
-//         <div>
-//           <FormLabel>Select Employee</FormLabel>
-
-//           <TomSelect
-//             value={formData.employeeId || ""}
-//             onChange={handleEmployeeChange}
-//             options={{
-//               placeholder: "Select Employee",
-//               allowEmptyOption: true,
-//             }}
-//             className="w-full"
-//           >
-//             <option value="">Select Employee</option>
-//             {employeeList.map((emp) => (
-//               <option key={emp.id} value={emp.id.toString()}>
-//                 {emp.firstName} {emp.lastName}
-//               </option>
-//             ))}
-//           </TomSelect>
-
-//           {formErrors.employeeId && (
-//             <p className="text-red-500 text-sm mt-1">
-//               {formErrors.employeeId}
-//             </p>
-//           )}
-//         </div>
-
-//         {/* Type Auto Selected */}
-//         <div>
-//           <FormLabel>Type</FormLabel>
-//           <div className="mt-2 flex gap-6">
-//             <label>
-//               <input
-//                 type="radio"
-//                 name="type"
-//                 checked={formData.type === 0}
-//                 readOnly
-//               />
-//               Staff
-//             </label>
-
-//             <label>
-//               <input
-//                 type="radio"
-//                 name="type"
-//                 checked={formData.type === 1}
-//                 readOnly
-//               />
-//               Worker
-//             </label>
-//           </div>
-
-//           {formData.employeeId && formData.type === null && (
-//             <p className="text-red-500 text-sm mt-1">
-//               Type not assigned to this employee
-//             </p>
-//           )}
-//         </div>
-
-//         {/* Attendance */}
-//         <div>
-//           <FormLabel>Attendance (Days)</FormLabel>
-//           <FormInput
-//             type="number"
-//             value={formData.attendance}
-//             onChange={(e) =>
-//               setFormData({
-//                 ...formData,
-//                 attendance: e.target.value,
-//               })
-//             }
-//           />
-//         </div>
-
-//         {/* Extra Hours */}
-//         <div>
-//           <FormLabel>Extra Hours</FormLabel>
-//           <FormInput
-//             type="number"
-//             value={formData.extraHours}
-//             onChange={(e) =>
-//               setFormData({
-//                 ...formData,
-//                 extraHours: e.target.value,
-//               })
-//             }
-//           />
-//         </div>
-
-//         {/* Late & Half Day */}
-//         <div className="grid grid-cols-2 gap-4">
-//           <div>
-//             <FormLabel>Total Late</FormLabel>
-//             <FormInput
-//               type="number"
-//               value={formData.totalLate}
-//               onChange={(e) =>
-//                 setFormData({
-//                   ...formData,
-//                   totalLate: e.target.value,
-//                 })
-//               }
-//             />
-//           </div>
-
-//           <div>
-//             <FormLabel>Half Day</FormLabel>
-//             <FormInput
-//               type="number"
-//               value={formData.halfDay}
-//               onChange={(e) =>
-//                 setFormData({
-//                   ...formData,
-//                   halfDay: e.target.value,
-//                 })
-//               }
-//             />
-//           </div>
-//         </div>
-
-//         {/* Total Salary */}
-//         <div>
-//           <FormLabel>Total Salary</FormLabel>
-//           <FormInput
-//             type="number"
-//             value={formData.totalSalary}
-//             onChange={(e) =>
-//               setFormData({
-//                 ...formData,
-//                 totalSalary: e.target.value,
-//               })
-//             }
-//           />
-//         </div>
-
-//         <Button variant="primary" type="submit" className="w-24">
-//           Submit
-//         </Button>
-//       </form>
-//     </div>
-//   );
-// };
-
-// export default Main;
-
-
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Button from "@/components/Base/Button";
 import { FormInput, FormLabel } from "@/components/Base/Form";
 import TomSelect from "@/components/Base/TomSelect";
@@ -607,11 +25,171 @@ interface EmployeeApiItem {
   Type?: number | string | null;
 }
 
+type CreditRecord = {
+  id: number;
+  employeeId: number;
+  creditAmount: number;
+  recoveredAmount: number;
+  outstandingAmount: number;
+  status: string;
+  createdAt: string;
+};
+
+const CREDIT_SALERY_STORAGE_KEYS = [
+  "credit-salery-records",
+  "credit-salary-records",
+  "creditSalaryRecords",
+];
+
+const getNumberField = (item: any, keys: string[], defaultValue = 0) => {
+  for (const key of keys) {
+    const value = Number(item?.[key]);
+    if (Number.isFinite(value)) return value;
+  }
+  return defaultValue;
+};
+
+const readStoredRecords = () => {
+  for (const key of CREDIT_SALERY_STORAGE_KEYS) {
+    const raw = localStorage.getItem(key);
+    if (!raw) continue;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed?.items)) return parsed.items;
+      if (Array.isArray(parsed?.Items)) return parsed.Items;
+      if (Array.isArray(parsed?.records)) return parsed.records;
+      if (Array.isArray(parsed?.data)) return parsed.data;
+    } catch (error) {
+      console.error("Error parsing credit records from key:", key, error);
+    }
+  }
+
+  return [];
+};
+
+const readCreditRecords = (): CreditRecord[] => {
+  try {
+    const parsed = readStoredRecords();
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map((item) => {
+        const id = getNumberField(item, ["id", "Id"], 0);
+        const employeeId = getNumberField(item, ["employeeId", "EmployeeId"], 0);
+        const creditAmount = getNumberField(
+          item,
+          ["creditAmount", "CreditAmount", "totalSalary", "TotalSalary"],
+          0
+        );
+        const recoveredAmount = getNumberField(
+          item,
+          ["recoveredAmount", "RecoveredAmount", "paidAmount", "PaidAmount"],
+          0
+        );
+        const outstandingAmount = getNumberField(
+          item,
+          ["outstandingAmount", "OutstandingAmount"],
+          Math.max(creditAmount - recoveredAmount, 0)
+        );
+        const status = String(item?.status ?? "Pending");
+        const createdAt = String(item?.createdAt ?? "");
+
+        if (
+          !Number.isFinite(id) ||
+          !Number.isFinite(employeeId) ||
+          employeeId <= 0 ||
+          !Number.isFinite(creditAmount)
+        ) {
+          return null;
+        }
+
+        return {
+          id,
+          employeeId,
+          creditAmount: Math.max(creditAmount, 0),
+          recoveredAmount: Math.max(recoveredAmount, 0),
+          outstandingAmount: Math.max(outstandingAmount, 0),
+          status,
+          createdAt,
+        };
+      })
+      .filter((record): record is CreditRecord => record !== null);
+  } catch (error) {
+    console.error("Error reading credit records:", error);
+    return [];
+  }
+};
+
+const saveCreditRecords = (records: CreditRecord[]) => {
+  CREDIT_SALERY_STORAGE_KEYS.forEach((key) => {
+    localStorage.setItem(key, JSON.stringify(records));
+  });
+};
+
+const getOutstandingCreditByEmployee = (employeeId: number) => {
+  const records = readCreditRecords();
+  return records
+    .filter((record) => record.employeeId === employeeId)
+    .reduce((sum, record) => sum + Math.max(record.outstandingAmount, 0), 0);
+};
+
+const getCreditStatus = (creditAmount: number, outstandingAmount: number) => {
+  if (outstandingAmount <= 0) return "Recovered";
+  if (outstandingAmount < creditAmount) return "Partially Recovered";
+  return "Pending";
+};
+
+const applyCreditDeduction = (employeeId: number, deductionAmount: number) => {
+  if (deductionAmount <= 0) return;
+
+  const records = readCreditRecords();
+  const eligibleIndexes = records
+    .map((record, index) => ({ record, index }))
+    .filter(
+      ({ record }) =>
+        record.employeeId === employeeId && Number(record.outstandingAmount) > 0
+    )
+    .sort((a, b) => {
+      const dateA = new Date(a.record.createdAt || 0).getTime();
+      const dateB = new Date(b.record.createdAt || 0).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      return a.record.id - b.record.id;
+    });
+
+  let remainingDeduction = deductionAmount;
+
+  eligibleIndexes.forEach(({ index }) => {
+    if (remainingDeduction <= 0) return;
+
+    const current = records[index];
+    const outstanding = Math.max(current.outstandingAmount, 0);
+    if (outstanding <= 0) return;
+
+    const deductedNow = Math.min(outstanding, remainingDeduction);
+    const updatedOutstanding = Math.max(outstanding - deductedNow, 0);
+    const updatedRecovered = Math.max(current.recoveredAmount, 0) + deductedNow;
+
+    records[index] = {
+      ...current,
+      recoveredAmount: updatedRecovered,
+      outstandingAmount: updatedOutstanding,
+      status: getCreditStatus(current.creditAmount, updatedOutstanding),
+    };
+
+    remainingDeduction -= deductedNow;
+  });
+
+  saveCreditRecords(records);
+};
+
 const Main: React.FC = () => {
   const token = localStorage.getItem("token");
 
   const [employeeList, setEmployeeList] = useState<Employee[]>([]);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [employeeOutstandingCredit, setEmployeeOutstandingCredit] = useState(0);
 
   const [successModalConfig, setSuccessModalConfig] =
     useState<SuccessModalConfig>({
@@ -631,21 +209,27 @@ const Main: React.FC = () => {
     halfDay: "",
     totalSalary: "",
   });
+  const [manualCreditDeduction, setManualCreditDeduction] = useState("");
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  //  Fetch Employees
+  const grossSalaryValue = Number(formData.totalSalary) || 0;
+  const maxAllowedDeduction = useMemo(
+    () => Math.min(grossSalaryValue, employeeOutstandingCredit),
+    [grossSalaryValue, employeeOutstandingCredit]
+  );
+  const creditDeductionValue = useMemo(() => {
+    const rawDeduction = Number(manualCreditDeduction) || 0;
+    return Math.max(0, Math.min(rawDeduction, maxAllowedDeduction));
+  }, [manualCreditDeduction, maxAllowedDeduction]);
+  const netSalaryPayable = Math.max(grossSalaryValue - creditDeductionValue, 0);
+
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(
-          `${BASE_URL}/api/employees`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        console.log("Employee API:", response.data);
+        const response = await axios.get(`${BASE_URL}/api/employees`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         if (Array.isArray(response.data?.items)) {
           const normalizedEmployees = (response.data.items as EmployeeApiItem[])
@@ -667,7 +251,17 @@ const Main: React.FC = () => {
     fetchEmployees();
   }, [token]);
 
-  // Employee Change → Auto Map Type
+  const updateOutstandingCredit = (employeeIdValue: string) => {
+    const employeeIdNum = Number(employeeIdValue);
+    if (!Number.isFinite(employeeIdNum) || employeeIdNum <= 0) {
+      setEmployeeOutstandingCredit(0);
+      return;
+    }
+
+    const outstanding = getOutstandingCreditByEmployee(employeeIdNum);
+    setEmployeeOutstandingCredit(outstanding);
+  };
+
   const handleEmployeeChange = async (
     e: string | number | { target?: { value?: string | number } }
   ) => {
@@ -682,25 +276,21 @@ const Main: React.FC = () => {
         employeeId: "",
         type: "",
       }));
+      setEmployeeOutstandingCredit(0);
+      setManualCreditDeduction("");
       return;
     }
 
     let normalizedType: number | null = null;
 
     try {
-      const employeeResponse = await axios.get(
-        `${BASE_URL}/api/employees/${value}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const employeeResponse = await axios.get(`${BASE_URL}/api/employees/${value}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-      const apiType =
-        employeeResponse.data?.type ?? employeeResponse.data?.Type ?? null;
-      normalizedType =
-        apiType === null || apiType === undefined ? null : Number(apiType);
+      const apiType = employeeResponse.data?.type ?? employeeResponse.data?.Type ?? null;
+      normalizedType = apiType === null || apiType === undefined ? null : Number(apiType);
     } catch (error) {
-      // Fallback to already-loaded list if detail API fails
       const selectedEmployee = employeeList.find(
         (emp) => emp.id.toString() === value
       );
@@ -714,15 +304,11 @@ const Main: React.FC = () => {
     setFormData((prev) => ({
       ...prev,
       employeeId: value,
-      type:
-        normalizedType === 1
-          ? "Worker"
-          : normalizedType === 0
-          ? "Staff"
-          : "",
+      type: normalizedType === 1 ? "Worker" : normalizedType === 0 ? "Staff" : "",
     }));
-
     setFormErrors((prev) => ({ ...prev, employeeId: "" }));
+    updateOutstandingCredit(value);
+    setManualCreditDeduction("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -731,14 +317,15 @@ const Main: React.FC = () => {
     const errors: Record<string, string> = {};
     const employeeIdNum = Number(formData.employeeId);
 
-    if (!formData.employeeId)
-      errors.employeeId = "Employee is required";
+    if (!formData.employeeId) errors.employeeId = "Employee is required";
     if (!Number.isFinite(employeeIdNum) || employeeIdNum <= 0)
       errors.employeeId = "Please select a valid employee";
-    if (!formData.attendance)
-      errors.attendance = "Attendance is required";
-    if (!formData.totalSalary)
-      errors.totalSalary = "Total salary is required";
+    if (!formData.attendance) errors.attendance = "Attendance is required";
+    if (!formData.totalSalary) errors.totalSalary = "Gross salary is required";
+    if (grossSalaryValue <= 0) errors.totalSalary = "Gross salary should be more than 0";
+    if (creditDeductionValue >= grossSalaryValue && grossSalaryValue > 0) {
+      errors.totalSalary = "Keep some salary payable to employee; reduce credit deduction.";
+    }
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -749,25 +336,24 @@ const Main: React.FC = () => {
       extraHours: Number(formData.extraHours || 0),
       totalLate: Number(formData.totalLate || 0),
       halfDay: Number(formData.halfDay || 0),
-      totalSalary: Number(formData.totalSalary),
+      totalSalary: netSalaryPayable,
     };
 
     try {
-      console.log("Salary payload:", payload);
-      const response = await axios.post(
-        `${BASE_URL}/api/salary`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await axios.post(`${BASE_URL}/api/salary`, payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (response.status === 200 || response.status === 201) {
+        applyCreditDeduction(employeeIdNum, creditDeductionValue);
         clearForm();
 
         setSuccessModalConfig({
           title: "Successfully Submitted",
-          subtitle: "Salary form submitted successfully.",
+          subtitle:
+            creditDeductionValue > 0
+              ? "Salary submitted and credit amount deducted."
+              : "Salary form submitted successfully.",
           icon: "CheckCircle",
           buttonText: "OK",
           onButtonClick: () => setIsSuccessModalOpen(false),
@@ -799,145 +385,132 @@ const Main: React.FC = () => {
       halfDay: "",
       totalSalary: "",
     });
+    setEmployeeOutstandingCredit(0);
+    setManualCreditDeduction("");
     setFormErrors({});
   };
 
   return (
     <>
       <div className="p-6">
-        <h2 className="text-xl font-medium mb-6">
-          Salary Form
-        </h2>
+        <h2 className="text-xl font-medium mb-6">Salary Form</h2>
 
-        <form
-          className="box p-5 space-y-4 w-full max-w-xl"
-          onSubmit={handleSubmit}
-        >
-        {/* Employee Dropdown */}
-        <div>
-          <FormLabel>Select Employee</FormLabel>
-          <TomSelect
-            value={formData.employeeId}
-            onChange={handleEmployeeChange}
-            options={{
-              placeholder: "Select Employee",
-              allowEmptyOption: true,
-            }}
-            className="w-full"
-          >
-            <option value="">Select Employee</option>
-            {employeeList.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.firstName} {emp.lastName}
-              </option>
-            ))}
-          </TomSelect>
+        <form className="box p-5 space-y-4 w-full max-w-xl" onSubmit={handleSubmit}>
+          <div>
+            <FormLabel>Select Employee</FormLabel>
+            <TomSelect
+              value={formData.employeeId}
+              onChange={handleEmployeeChange}
+              options={{
+                placeholder: "Select Employee",
+                allowEmptyOption: true,
+              }}
+              className="w-full"
+            >
+              <option value="">Select Employee</option>
+              {employeeList.map((emp) => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.firstName} {emp.lastName}
+                </option>
+              ))}
+            </TomSelect>
 
-          {formErrors.employeeId && (
-            <p className="text-red-500 text-sm mt-1">
-              {formErrors.employeeId}
+            {formErrors.employeeId && (
+              <p className="text-red-500 text-sm mt-1">{formErrors.employeeId}</p>
+            )}
+          </div>
+
+          <div>
+            <FormLabel>Type</FormLabel>
+            <div className="mt-2 flex gap-4">
+              <label className="flex items-center gap-1">
+                <input type="radio" checked={formData.type === "Staff"} readOnly />
+                Staff
+              </label>
+              <label className="flex items-center gap-1">
+                <input type="radio" checked={formData.type === "Worker"} readOnly />
+                Worker
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <FormLabel>Attendance (Days)</FormLabel>
+            <FormInput
+              type="number"
+              value={formData.attendance}
+              onChange={(e) => setFormData({ ...formData, attendance: e.target.value })}
+            />
+            {formErrors.attendance && (
+              <p className="text-red-500 text-sm mt-1">{formErrors.attendance}</p>
+            )}
+          </div>
+
+          <div>
+            <FormLabel>Extra Hours</FormLabel>
+            <FormInput
+              type="number"
+              value={formData.extraHours}
+              onChange={(e) => setFormData({ ...formData, extraHours: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <FormLabel>Total Late</FormLabel>
+              <FormInput
+                type="number"
+                value={formData.totalLate}
+                onChange={(e) => setFormData({ ...formData, totalLate: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <FormLabel>Half Day</FormLabel>
+              <FormInput
+                type="number"
+                value={formData.halfDay}
+                onChange={(e) => setFormData({ ...formData, halfDay: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div>
+            <FormLabel>Gross Salary</FormLabel>
+            <FormInput
+              type="number"
+              value={formData.totalSalary}
+              onChange={(e) => setFormData({ ...formData, totalSalary: e.target.value })}
+            />
+            {formErrors.totalSalary && (
+              <p className="text-red-500 text-sm mt-1">{formErrors.totalSalary}</p>
+            )}
+          </div>
+
+          <div>
+            <FormLabel>Outstanding Credit</FormLabel>
+            <FormInput type="number" value={employeeOutstandingCredit} readOnly />
+          </div>
+
+          <div>
+            <FormLabel>Credit Deduction (Adjustable)</FormLabel>
+            <FormInput
+              type="number"
+              min="0"
+              max={maxAllowedDeduction}
+              value={manualCreditDeduction}
+              onChange={(e) => setManualCreditDeduction(e.target.value)}
+              placeholder="Enter deduction amount"
+            />
+            <p className="text-slate-500 text-xs mt-1">
+              Max allowed deduction: {maxAllowedDeduction}
             </p>
-          )}
-        </div>
-
-        {/* Auto Type */}
-        <div>
-          <FormLabel>Type</FormLabel>
-          <div className="mt-2 flex gap-4">
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                checked={formData.type === "Staff"}
-                readOnly
-              />
-              Staff
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="radio"
-                checked={formData.type === "Worker"}
-                readOnly
-              />
-              Worker
-            </label>
-          </div>
-        </div>
-
-        {/* Attendance */}
-        <div>
-          <FormLabel>Attendance (Days)</FormLabel>
-          <FormInput
-            type="number"
-            value={formData.attendance}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                attendance: e.target.value,
-              })
-            }
-          />
-        </div>
-
-        {/* Extra Hours */}
-        <div>
-          <FormLabel>Extra Hours</FormLabel>
-          <FormInput
-            type="number"
-            value={formData.extraHours}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                extraHours: e.target.value,
-              })
-            }
-          />
-        </div>
-
-        {/* Late & Half Day */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <FormLabel>Total Late</FormLabel>
-            <FormInput
-              type="number"
-              value={formData.totalLate}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  totalLate: e.target.value,
-                })
-              }
-            />
           </div>
 
           <div>
-            <FormLabel>Half Day</FormLabel>
-            <FormInput
-              type="number"
-              value={formData.halfDay}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  halfDay: e.target.value,
-                })
-              }
-            />
+            <FormLabel>Net Salary Payable</FormLabel>
+            <FormInput type="number" value={netSalaryPayable} readOnly />
           </div>
-        </div>
-
-        {/* Total Salary */}
-        <div>
-          <FormLabel>Total Salary</FormLabel>
-          <FormInput
-            type="number"
-            value={formData.totalSalary}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                totalSalary: e.target.value,
-              })
-            }
-          />
-        </div>
 
           <Button variant="primary" type="submit" className="w-24">
             Submit

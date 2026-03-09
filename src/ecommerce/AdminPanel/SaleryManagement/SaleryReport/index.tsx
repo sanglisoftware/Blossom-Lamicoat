@@ -140,8 +140,27 @@ function Main() {
 
 
   const handleSearch = (value: string) => {
+    const term = value.trim().toLowerCase();
     setSearchTerm(value);
-    tabulator.current?.setFilter("Name", "like", value);
+
+    if (!term) {
+      tabulator.current?.clearFilter(true);
+      return;
+    }
+
+    tabulator.current?.setFilter((row: SalaryRow) =>
+      [
+        row.Name,
+        row.Type,
+        row.Date,
+        row.SaleryPerDay,
+        row.Attendence,
+        row.ExtraHours,
+        row.LateDay,
+        row.HalfDay,
+        row.Salery,
+      ].some((fieldValue) => String(fieldValue).toLowerCase().includes(term))
+    );
   };
 
   return (
@@ -155,7 +174,7 @@ function Main() {
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Enter name..."
+            placeholder="Search all fields..."
             className="w-64"
             value={searchTerm}
             onChange={(e) => handleSearch(e.target.value)}

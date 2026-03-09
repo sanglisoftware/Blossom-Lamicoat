@@ -14,15 +14,38 @@ export interface FormattedMenu extends Menu {
   subMenu?: FormattedMenu[];
 }
 
+const normalizePath = (path?: string) => {
+  if (!path) return "";
+  const withoutQueryOrHash = path.trim().split(/[?#]/)[0];
+  if (!withoutQueryOrHash) return "";
+
+  const withLeadingSlash = withoutQueryOrHash.startsWith("/")
+    ? withoutQueryOrHash
+    : `/${withoutQueryOrHash}`;
+
+  const trimmedTrailingSlash =
+    withLeadingSlash.length > 1 && withLeadingSlash.endsWith("/")
+      ? withLeadingSlash.slice(0, -1)
+      : withLeadingSlash;
+
+  return trimmedTrailingSlash.toLowerCase();
+};
+
+const isPathMatch = (menuPath: string | undefined, targetPath: string) =>
+  normalizePath(menuPath) === normalizePath(targetPath);
+
+const toAbsolutePath = (path: string) =>
+  path.startsWith("/") ? path : `/${path}`;
+
 // Setup side menu
 const findActiveMenu = (subMenu: Menu[], location: Location): boolean => {
   let match = false;
   subMenu.forEach((item) => {
     if (
       ((location.forceActiveMenu !== undefined &&
-        item.pathname === location.forceActiveMenu) ||
+        isPathMatch(item.pathname, location.forceActiveMenu)) ||
         (location.forceActiveMenu === undefined &&
-          item.pathname === location.pathname)) &&
+          isPathMatch(item.pathname, location.pathname))) &&
       !item.ignore
     ) {
       match = true;
@@ -46,9 +69,9 @@ const nestedMenu = (menu: Array<Menu | "divider">, location: Location) => {
       };
       menuItem.active =
         ((location.forceActiveMenu !== undefined &&
-          menuItem.pathname === location.forceActiveMenu) ||
+          isPathMatch(menuItem.pathname, location.forceActiveMenu)) ||
           (location.forceActiveMenu === undefined &&
-            menuItem.pathname === location.pathname) ||
+            isPathMatch(menuItem.pathname, location.pathname)) ||
           (menuItem.subMenu && findActiveMenu(menuItem.subMenu, location))) &&
         !menuItem.ignore;
 
@@ -82,7 +105,7 @@ const linkTo = (
   } else {
     if (menu.pathname !== undefined) {
       setActiveMobileMenu(false);
-      navigate(menu.pathname);
+      navigate(toAbsolutePath(menu.pathname));
     }
   }
 };
