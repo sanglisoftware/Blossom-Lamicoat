@@ -23,6 +23,8 @@ interface EditFormulaProps {
 interface finaProduct {
     id: string;
     final_Product: string;
+    finalProductId?: number;
+    mixtureName?: string;
 }
 
 interface Chemical {
@@ -175,6 +177,8 @@ useEffect(() => {
             setFormData(prev => ({
                 ...prev,
                 formulaMasterId: String(formulaData.formulaMasterId),
+                finalProductId: String(formulaData.finalProductId ?? ""),
+                mixtureName: String(formulaData.mixtureName ?? ""),
             }));
 
         } catch (error) {
@@ -216,6 +220,8 @@ useEffect(() => {
     //Collection Modal (useState)
     const [formData, setFormData] = useState({
         formulaMasterId: "",
+        finalProductId: "",
+        mixtureName: "",
         chemicalMasterId: "",
         qty: "",
     })
@@ -227,25 +233,39 @@ useEffect(() => {
   
 
     const handleSubmit = async () => {
+        const errors: Record<string, string> = {};
+
+        if (!formData.mixtureName.trim()) {
+            errors.mixtureName = "Mixture Name is required";
+        }
+
+        setFormErrors(errors);
+        if (Object.keys(errors).length > 0) return;
+
         try {
 
-            const filteredChemicals = selectedChemicals
-                .filter(c => c.qty !== "")
-                .map(c => ({
-                    chemicalMasterId: c.chemicalMasterId,
-                    qty: Number(c.qty)
-                }));
-
-            // const payload = {
-            //     formulaMasterId: Number(formData.formulaMasterId),
-            //     chemicals: filteredChemicals
-            // };
+            await axios.put(
+                `${BASE_URL}/api/formulamaster/${formData.formulaMasterId}`,
+                {
+                    id: Number(formData.formulaMasterId),
+                    finalProductId: Number(formData.finalProductId),
+                    mixtureName: formData.mixtureName.trim(),
+                    isActive: 1,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
 
             const payload = {
     formulaMasterId: Number(formData.formulaMasterId),
+    mixtureName: formData.mixtureName.trim(),
     chemicals: selectedChemicals.map(c => ({
         chemicalMasterId: c.chemicalMasterId,
-        qty: c.qty === "" ? 0 : Number(c.qty)
+        qty: c.qty === "" ? 0 : Number(c.qty),
+        mixtureName: formData.mixtureName.trim()
     }))
 };
 
@@ -351,6 +371,28 @@ useEffect(() => {
                             </TomSelect>
 
                             {formErrors.product && <p className="text-red-500 text-sm">{formErrors.product}</p>}
+                        </div>
+
+                        <div>
+                            <FormLabel htmlFor="mixtureName">Mixture Name</FormLabel>
+                            <FormInput
+                                id="mixtureName"
+                                type="text"
+                                value={formData.mixtureName}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        mixtureName: value,
+                                    }));
+
+                                    if (value.trim() !== "") {
+                                        setFormErrors((prev) => ({ ...prev, mixtureName: "" }));
+                                    }
+                                }}
+                                placeholder="Enter Mixture Name"
+                            />
+                            {formErrors.mixtureName && <p className="text-red-500 text-sm">{formErrors.mixtureName}</p>}
                         </div>
 
                         {selectedChemicals.map((c) => (

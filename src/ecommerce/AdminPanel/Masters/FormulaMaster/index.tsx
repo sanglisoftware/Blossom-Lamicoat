@@ -140,6 +140,28 @@ const globalIndexMap = useRef<{ [key: number]: number }>({});
             return "";
           },
         },
+        {
+          title: "Mixture Name",
+          field: "mixtureName",
+          hozAlign: "center",
+          headerHozAlign: "center",
+          minWidth: 200,
+          formatter: function (cell) {
+            const table = cell.getTable();
+            const rows = table.getRows();
+            const currentData = cell.getRow().getData();
+
+            const firstMatch = rows.find(
+              r => r.getData().finalProductName === currentData.finalProductName
+            );
+
+            if (firstMatch?.getData().id === currentData.id) {
+              return cell.getValue();
+            }
+
+            return "";
+          },
+        },
 
 
         {

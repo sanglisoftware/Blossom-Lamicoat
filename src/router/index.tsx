@@ -124,6 +124,16 @@ import RMFabricStock from "@/ecommerce/AdminPanel/Report/RMFabricStock";
 import RMPVCStock from "@/ecommerce/AdminPanel/Report/RMPVCStock";
 import ChemicalStock from "@/ecommerce/AdminPanel/Report/ChemicalStock";
 import FabricProductList from "@/ecommerce/AdminPanel/FabricMaster/FabricProductList";
+import ClothRollingForm from "@/ecommerce/AdminPanel/ClothRolling/ClothRollingForm";
+import ClothRollingReport from "@/ecommerce/AdminPanel/ClothRolling/ClothRollingReport";
+import RollingApproveReport from "@/ecommerce/AdminPanel/ClothRolling/RollingApproveReport";
+import MixtureForm from "@/ecommerce/AdminPanel/Mixture/MixtureForm";
+import MixtureReport from "@/ecommerce/AdminPanel/Mixture/MixtureReport";
+import MixtureApproveReport from "@/ecommerce/AdminPanel/Mixture/MixtureApproveReport";
+import LaminationForm from "@/ecommerce/AdminPanel/Lamination/LaminationForm";
+import LaminationReport from "@/ecommerce/AdminPanel/Lamination/LaminationReport";
+import InspectionForm from "@/ecommerce/AdminPanel/Inspection/InspectionForm";
+import InspectionReport from "@/ecommerce/AdminPanel/Inspection/InspectionReport";
 
 
 function Router() {
@@ -168,11 +178,12 @@ function Router() {
             { path: "supplier", element: <Supplier/> },
             { path: "formula-master", element: <FormulaMaster/> },
 
-            { path: "salary-form", element: <SaleryForm/> },
-            { path: "salary-report", element: <SaleryReport/> },
-            { path: "daily-attendence", element: <DailyAttendence/> },
-            { path: "attendence-report", element: <AttendenceReport/> },
-            { path: "credit-salary", element: <CreditSalery/> },
+            // Staff Salery Management
+            { path: "salary-form", element: <SaleryForm /> },
+            { path: "salary-report", element: <SaleryReport /> },
+            { path: "daily-attendence", element: <DailyAttendence /> },
+            { path: "attendence-report", element: <AttendenceReport /> },
+            { path: "credit-salary", element: <CreditSalery /> },
 
 
             { path: "daily-production-record", element: <DailyProductionRecord/> },
@@ -183,6 +194,30 @@ function Router() {
             { path: "RM-fabric-stock", element: <RMFabricStock/> },
             { path: "RM-PVC-stock", element: <RMPVCStock/> },
             { path: "chemical-stock", element: <ChemicalStock/> },
+
+
+            { path: "cloth-rolling-form", element: <ClothRollingForm/> },
+            { path: "cloth-rolling-report", element: <ClothRollingReport/> },
+            { path: "rolling-approve-report", element: <RollingApproveReport/> },
+
+            { path: "mixture-form", element: <MixtureForm/> },
+            { path: "mixture-report", element: <MixtureReport/> },
+            { path: "mixture-approve-report", element: <MixtureApproveReport/> },
+
+            { path: "lamination-form", element: <LaminationForm/> },
+            { path: "lamination-report", element: <LaminationReport/> },
+
+            { path: "inspection-form", element: <InspectionForm/> },
+            { path: "inspection-report", element: <InspectionReport/> },
+
+
+
+
+
+
+
+
+
 
 
 

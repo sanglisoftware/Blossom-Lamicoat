@@ -31,6 +31,11 @@ interface SelectedChemical {
   qty: string;
 }
 
+interface FormulaFormData {
+  finalProductId: string;
+  mixtureName: string;
+}
+
 const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
   open,
   onClose,
@@ -41,7 +46,7 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
   const [finalProducts, setFinalProducts] = useState<FinalProductOptions[]>([]);
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [selectedChemicals, setSelectedChemicals] = useState<SelectedChemical[]>([]);
-  const [formData, setFormData] = useState({ finalProductId: "" });
+  const [formData, setFormData] = useState<FormulaFormData>({ finalProductId: "", mixtureName: "" });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successModalConfig, setSuccessModalConfig] =
@@ -98,8 +103,13 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
   }, [token]);
 
   const handleFinalProductChange = (value: string) => {
-    setFormData({ finalProductId: value });
+    setFormData((prev) => ({ ...prev, finalProductId: value }));
     setFormErrors((prev) => ({ ...prev, finalProductId: "" }));
+  };
+
+  const handleMixtureNameChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, mixtureName: value }));
+    setFormErrors((prev) => ({ ...prev, mixtureName: "" }));
   };
 
   const handleQtyChange = (chemicalId: number, qty: string) => {
@@ -117,6 +127,10 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
       errors.finalProductId = "Final Product is required";
     }
 
+    if (!formData.mixtureName.trim()) {
+      errors.mixtureName = "Mixture Name is required";
+    }
+
     selectedChemicals.forEach((c) => {
       if (!c.qty) {
         errors[`chemical_${c.chemicalMasterId}`] =
@@ -131,7 +145,7 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
     
       const formulaMasterRes = await axios.post(
         `${BASE_URL}/api/formulamaster`,
-        { finalProductId: Number(formData.finalProductId), isActive: 1 },
+        { finalProductId: Number(formData.finalProductId), mixtureName: formData.mixtureName.trim(), isActive: 1 },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -153,6 +167,7 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
               formulaMasterId,
               chemicalMasterId: c.chemicalMasterId,
               qty: Number(c.qty),
+              mixtureName: formData.mixtureName.trim(),
               isActive: 1,
             },
             { headers: { Authorization: `Bearer ${token}` } }
@@ -172,6 +187,7 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
 
       const displayPayload = {
         finalProduct: finalProductMap[Number(formData.finalProductId)] || formData.finalProductId,
+        mixtureName: formData.mixtureName.trim(),
         chemicals: selectedChemicals
           .filter(c => c.qty !== "")
           .map(c => ({
@@ -182,7 +198,7 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
 
       console.log("Payload with names:", displayPayload);
 
-      setFormData({ finalProductId: "" });
+      setFormData({ finalProductId: "", mixtureName: "" });
       setSelectedChemicals(
         chemicals.map((c) => ({
           chemicalMasterId: c.id,
@@ -243,6 +259,22 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
               {formErrors.finalProductId && (
                 <p className="text-red-500 text-sm">
                   {formErrors.finalProductId}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <FormLabel>Mixture Name</FormLabel>
+              <FormInput
+                type="text"
+                placeholder="Enter Mixture Name"
+                value={formData.mixtureName}
+                onChange={(e) => handleMixtureNameChange(e.target.value)}
+              />
+
+              {formErrors.mixtureName && (
+                <p className="text-red-500 text-sm">
+                  {formErrors.mixtureName}
                 </p>
               )}
             </div>

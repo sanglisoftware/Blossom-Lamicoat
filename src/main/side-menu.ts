@@ -521,6 +521,37 @@ const menu: Array<Menu | "divider"> = [
     ],
   },
   {
+    icon: "Wallet",
+    title: "Staff Salery Management",
+    subMenu: [
+      {
+        icon: "FileText",
+        pathname: "/salary-form",
+        title: "Salery Form",
+      },
+      {
+        icon: "ClipboardList",
+        pathname: "/salary-report",
+        title: "Salery Report",
+      },
+      {
+        icon: "CalendarDays",
+        pathname: "/daily-attendence",
+        title: "Daily Attendence",
+      },
+      {
+        icon: "BarChart3",
+        pathname: "/attendence-report",
+        title: "Attendence Report",
+      },
+      {
+        icon: "BadgeIndianRupee",
+        pathname: "/credit-salary",
+        title: "Credit Salery",
+      },
+    ],
+  },
+  {
     icon: "CalendarPlus",
     title: "Orders",
     subMenu: [
