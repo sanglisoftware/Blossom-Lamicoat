@@ -1,6 +1,6 @@
 import { twMerge } from "tailwind-merge";
-import { Dialog as HeadlessDialog, Transition } from "@headlessui/react";
-import { Fragment, createContext, useContext, useRef, useState } from "react";
+import { Dialog as HeadlessDialog, Portal, Transition } from "@headlessui/react";
+import { Fragment, createContext, useContext, useState } from "react";
 
 type Size = "sm" | "md" | "lg" | "xl";
 
@@ -20,6 +20,7 @@ function Dialog({
   as = "div",
   open = false,
   onClose,
+  initialFocus,
   staticBackdrop,
   size = "md",
   ...props
@@ -27,7 +28,6 @@ function Dialog({
   size?: Size;
   staticBackdrop?: boolean;
 }) {
-  const focusElement = useRef<HTMLElement | null>(null);
   const [zoom, setZoom] = useState(false);
 
   return (
@@ -38,26 +38,28 @@ function Dialog({
         size: size,
       }}
     >
-      <Transition appear as={Fragment} show={open}>
-        <HeadlessDialog
-          as={as}
-          onClose={(value) => {
-            if (!staticBackdrop) {
-              return onClose(value);
-            } else {
-              setZoom(true);
-              setTimeout(() => {
-                setZoom(false);
-              }, 300);
-            }
-          }}
-          initialFocus={focusElement}
-          className={twMerge(["relative z-[60]", className])}
-          {...props}
-        >
-          {children}
-        </HeadlessDialog>
-      </Transition>
+      <Portal>
+        <Transition appear as={Fragment} show={open}>
+          <HeadlessDialog
+            as={as}
+            onClose={(value) => {
+              if (!staticBackdrop) {
+                return onClose(value);
+              } else {
+                setZoom(true);
+                setTimeout(() => {
+                  setZoom(false);
+                }, 300);
+              }
+            }}
+            initialFocus={initialFocus}
+            className={twMerge(["relative z-[60]", className])}
+            {...props}
+          >
+            {children}
+          </HeadlessDialog>
+        </Transition>
+      </Portal>
     </dialogContext.Provider>
   );
 }
@@ -81,7 +83,7 @@ Dialog.Panel = ({
         leave="ease-in-out duration-[400ms]"
         leaveFrom="opacity-100"
         leaveTo="opacity-0"
-        className="fixed inset-0 bg-black/60"
+        className="fixed inset-0 z-0 bg-black/60"
         aria-hidden="true"
       />
       <Transition.Child
@@ -92,12 +94,12 @@ Dialog.Panel = ({
         leave="ease-in-out duration-[400ms]"
         leaveFrom="opacity-100 pt-16"
         leaveTo="opacity-0 -mt-16 pt-0"
-        className="fixed inset-0 py-16 overflow-y-auto"
+        className="fixed inset-0 z-10 overflow-y-auto py-16 pointer-events-none"
       >
         <HeadlessDialog.Panel
           as={as}
           className={twMerge([
-            "w-[90%] mx-auto bg-white relative rounded-md shadow-md transition-transform dark:bg-darkmode-600",
+            "relative mx-auto w-[90%] rounded-md bg-white shadow-md transition-transform pointer-events-auto dark:bg-darkmode-600",
             dialog.size == "md" && "sm:w-[460px]",
             dialog.size == "sm" && "sm:w-[300px]",
             dialog.size == "lg" && "sm:w-[600px]",

@@ -216,6 +216,7 @@ const handleFilterChange = (value: string) => {
           <FormInput
             type="text"
             className="w-64"
+            placeholder="Search..."
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}
           />

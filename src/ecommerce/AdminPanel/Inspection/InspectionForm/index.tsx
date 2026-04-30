@@ -30,6 +30,29 @@ type Option = {
   label: string;
 };
 
+const fetchFabricProductOptions = async (token: string | null) => {
+  const headers = { Authorization: `Bearer ${token}` };
+
+  try {
+    const response = await axios.get<PagedResponse<FabricProductApiItem>>(
+      `${BASE_URL}/api/fproductlist?page=1&size=1000`,
+      { headers }
+    );
+
+    return response.data?.items ?? response.data?.Items ?? [];
+  } catch (error) {
+    if (!axios.isAxiosError(error) || error.response?.status !== 500) {
+      throw error;
+    }
+
+    const fallbackResponse = await axios.get<PagedResponse<FabricProductApiItem>>(
+      `${BASE_URL}/api/fproductlist`,
+      { headers }
+    );
+
+    return fallbackResponse.data?.items ?? fallbackResponse.data?.Items ?? [];
+  }
+};
 
 const Main = () => {
   const token = localStorage.getItem("token");
@@ -56,20 +79,15 @@ const Main = () => {
     const fetchDropdownData = async () => {
       try {
         const [fabricProductResponse, gradeResponse] = await Promise.all([
-          axios.get<PagedResponse<FabricProductApiItem>>(
-            `${BASE_URL}/api/fproductlist?page=1&size=1000`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          ),
+          fetchFabricProductOptions(token),
           axios.get<PagedResponse<GradeApiItem>>(
             `${BASE_URL}/api/grade?page=1&size=1000`,
             { headers: { Authorization: `Bearer ${token}` } }
           ),
         ]);
 
-        const fabricProducts =
-          fabricProductResponse.data?.items ?? fabricProductResponse.data?.Items ?? [];
         setFabricProductOptions(
-          fabricProducts.map((item) => ({
+          fabricProductResponse.map((item) => ({
             value: String(item.id ?? item.Id ?? ""),
             label: String(item.name ?? item.Name ?? ""),
           }))

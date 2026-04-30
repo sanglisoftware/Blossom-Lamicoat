@@ -1,8 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/Base/Button";
 import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
-import TomSelect from "@/components/Base/TomSelect";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
 
@@ -11,24 +10,6 @@ interface EditProductProps {
   onClose: () => void;
   productId: number | null;
   onSuccess?: () => void;
-}
-
-interface GramageOptions {
-  id: number;
-  grm: string;
-  isActive: number;
-}
-
-interface WidthOptions {
-  id: number;
-  grm: string;
-  isActive: number;
-}
-
-interface ColourOptions {
-  id: number;
-  name: string;
-  isActive: number;
 }
 
 const EditProduct: React.FC<EditProductProps> = ({
@@ -42,43 +23,10 @@ const EditProduct: React.FC<EditProductProps> = ({
   const [formData, setFormData] = useState({
     id: 0,
     name: "",
-    gramageMasterId: "",
-    widthMasterId: "",
-    colourMasterId: "",
     comments: "",
     isActive: 1,
   });
-
-  const [gramages, setGramages] = useState<GramageOptions[]>([]);
-  const [widths, setWidths] = useState<WidthOptions[]>([]);
-  const [colours, setColours] = useState<ColourOptions[]>([]);
-
-  // ✅ Fetch master lists
-  useEffect(() => {
-    const fetchMasters = async () => {
-      try {
-        const [gRes, wRes, cRes] = await Promise.all([
-          axios.get(`${BASE_URL}/api/gramage`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${BASE_URL}/api/width`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${BASE_URL}/api/colour`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-
-        setGramages(gRes.data.items || []);
-        setWidths(wRes.data.items || []);
-        setColours(cRes.data.items || []);
-      } catch (error) {
-        console.error("Error loading masters:", error);
-      }
-    };
-
-    fetchMasters();
-  }, [token]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // ✅ Fetch product details
   useEffect(() => {
@@ -96,9 +44,6 @@ const EditProduct: React.FC<EditProductProps> = ({
         setFormData({
           id: res.data.id,
           name: res.data.name || "",
-          gramageMasterId: res.data.gramageMasterId?.toString() || "",
-          widthMasterId: res.data.widthMasterId?.toString() || "",
-          colourMasterId: res.data.colourMasterId?.toString() || "",
           comments: res.data.comments || "",
           isActive: res.data.isActive ?? 1,
         });
@@ -110,39 +55,18 @@ const EditProduct: React.FC<EditProductProps> = ({
     fetchProduct();
   }, [open, productId, token]);
 
-  // ✅ Active only
-  const activeGramages = useMemo(
-    () => gramages.filter((g) => g.isActive === 1),
-    [gramages]
-  );
-
-  const activeWidths = useMemo(
-    () => widths.filter((w) => w.isActive === 1),
-    [widths]
-  );
-
-  const activeColours = useMemo(
-    () => colours.filter((c) => c.isActive === 1),
-    [colours]
-  );
-
-  // ✅ Dropdown change handler
-  const handleChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   // ✅ Update API
   const handleUpdate = async () => {
+    const errors: Record<string, string> = {};
+    if (!formData.name.trim()) errors.name = "Name is required";
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     try {
       const payload = {
         id: formData.id,
-        name: formData.name,
-        gramageMasterId: Number(formData.gramageMasterId),
-        widthMasterId: Number(formData.widthMasterId),
-        colourMasterId: Number(formData.colourMasterId),
+        name: formData.name.trim(),
         comments: formData.comments,
         isActive: formData.isActive,
       };
@@ -181,66 +105,9 @@ const EditProduct: React.FC<EditProductProps> = ({
                 setFormData({ ...formData, name: e.target.value })
               }
             />
-          </div>
-
-          {/* Gramage */}
-          <div>
-            <FormLabel>Gramage</FormLabel>
-            <TomSelect
-              value={formData.gramageMasterId}
-              onChange={(e) =>
-                handleChange("gramageMasterId", e.target.value)
-              }
-              options={{ placeholder: "Select Gramage" }}
-              className="w-full"
-            >
-              <option value="">Select Gramage</option>
-              {activeGramages.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.grm}
-                </option>
-              ))}
-            </TomSelect>
-          </div>
-
-          {/* Width */}
-          <div>
-            <FormLabel>Width</FormLabel>
-            <TomSelect
-              value={formData.widthMasterId}
-              onChange={(e) =>
-                handleChange("widthMasterId", e.target.value)
-              }
-              options={{ placeholder: "Select Width" }}
-              className="w-full"
-            >
-              <option value="">Select Width</option>
-              {activeWidths.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.grm}
-                </option>
-              ))}
-            </TomSelect>
-          </div>
-
-          {/* Colour */}
-          <div>
-            <FormLabel>Colour</FormLabel>
-            <TomSelect
-              value={formData.colourMasterId}
-              onChange={(e) =>
-                handleChange("colourMasterId", e.target.value)
-              }
-              options={{ placeholder: "Select Colour" }}
-              className="w-full"
-            >
-              <option value="">Select Colour</option>
-              {activeColours.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </TomSelect>
+            {formErrors.name && (
+              <p className="text-red-500 text-sm">{formErrors.name}</p>
+            )}
           </div>
 
           {/* Comments */}

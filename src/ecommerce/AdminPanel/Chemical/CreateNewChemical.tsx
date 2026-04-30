@@ -85,7 +85,13 @@ const CreateNewChemical: React.FC<CreateNewChemicalModalProps> = ({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} staticBackdrop size="md">
+      <Dialog
+        open={open}
+        onClose={onClose}
+        staticBackdrop
+        size="md"
+        className="z-[80]"
+      >
         <Dialog.Panel>
           <Dialog.Title>
             <h2 className="text-base font-medium">Create New Chemical</h2>

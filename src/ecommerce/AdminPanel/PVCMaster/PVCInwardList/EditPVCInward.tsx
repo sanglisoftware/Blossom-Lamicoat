@@ -27,6 +27,24 @@ interface Supplier {
   isActive: number;
 }
 
+interface GramageOption {
+  id: number;
+  grm: string;
+  isActive: number;
+}
+
+interface WidthOption {
+  id: number;
+  grm: string;
+  isActive: number;
+}
+
+interface ColourOption {
+  id: number;
+  name: string;
+  isActive: number;
+}
+
 const EditPVCInward: React.FC<EditInwardListProps> = ({
   open,
   onClose,
@@ -34,6 +52,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
   onSuccess,
 }) => {
   const token = localStorage.getItem("token");
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
     id: 0,
@@ -46,15 +65,25 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
     qty_kg: "",
     qty_Mtr:"",
     comments: "",
+    gramageMasterId: "",
+    widthMasterId: "",
+    colourMasterId: "",
     BillDate: "",
     ReceivedDate: "",
+    attachedFile: "",
     isActive: 1,
   });
 
   const [pvcOptions, setPVCOptions] = useState<PVC[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [gramageOptions, setGramageOptions] = useState<GramageOption[]>([]);
+  const [widthOptions, setWidthOptions] = useState<WidthOption[]>([]);
+  const [colourOptions, setColourOptions] = useState<ColourOption[]>([]);
   const [pvcOptionsLoaded, setPVCOptionsLoaded] = useState(false);
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
+  const [gramageLoaded, setGramageLoaded] = useState(false);
+  const [widthLoaded, setWidthLoaded] = useState(false);
+  const [colourLoaded, setColourLoaded] = useState(false);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -72,15 +101,24 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
       try {
         setPVCOptionsLoaded(false);
         setSuppliersLoaded(false);
-        const [pvcRes, suppRes] = await Promise.all([
+        const [pvcRes, suppRes, gramageRes, widthRes, colourRes] = await Promise.all([
           axios.get(`${BASE_URL}/api/pvcproductlist`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${BASE_URL}/api/supplier`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${BASE_URL}/api/gramage`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${BASE_URL}/api/width`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${BASE_URL}/api/colour`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         setPVCOptions((pvcRes.data.items || []).filter((p: PVC) => p.isActive === 1));
         setSuppliers((suppRes.data.items || []).filter((s: Supplier) => s.isActive === 1));
+        setGramageOptions((gramageRes.data.items || []).filter((g: GramageOption) => g.isActive === 1));
+        setWidthOptions((widthRes.data.items || []).filter((w: WidthOption) => w.isActive === 1));
+        setColourOptions((colourRes.data.items || []).filter((c: ColourOption) => c.isActive === 1));
         setPVCOptionsLoaded(true);
         setSuppliersLoaded(true);
+        setGramageLoaded(true);
+        setWidthLoaded(true);
+        setColourLoaded(true);
       } catch (error) {
         console.error("Error fetching pvc or suppliers:", error);
       }
@@ -113,11 +151,16 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
           qty_kg: res.data.qty_kg?.toString() || "",
           qty_Mtr: res.data.qty_Mtr?.toString() || "",
           comments: res.data.comments || "",
+          gramageMasterId: res.data.gramageMasterId?.toString() || "",
+          widthMasterId: res.data.widthMasterId?.toString() || "",
+          colourMasterId: res.data.colourMasterId?.toString() || "",
           BillDate: res.data.billDate?.split("T")[0] || "",
           ReceivedDate: res.data.receivedDate?.split("T")[0] || "",
+          attachedFile: res.data.attachedFile || "",
           isActive: res.data.isActive ?? 1,
         });
 
+        setAttachedFile(null);
         setFormErrors({});
       } catch (error) {
         console.error("Error fetching inward:", error);
@@ -145,10 +188,13 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
     if (!formData.supplierId) errors.Supplier = "Supplier is required";
     if (!formData.pvcId) errors.PVCName = "PVC is required";
     if (!formData.new_RollNo) errors.NewRollNo = "New Roll No is required";
-    if (!formData.batchNo) errors.batchNo = "Batch No is required";
+    if (!formData.batchNo) errors.batchNo = "Invoice No is required";
     if (!formData.qty_kg) errors.qty_kg = "QTY (Kg) is required";
     if (!formData.qty_Mtr) errors.qty_Mtr = "QTY (MTR) is required";
     if (!formData.comments) errors.comments = "Comments is required";
+    if (!formData.gramageMasterId) errors.gramageMasterId = "Gramage is required";
+    if (!formData.widthMasterId) errors.widthMasterId = "Width is required";
+    if (!formData.colourMasterId) errors.colourMasterId = "Colour is required";
     if (!formData.BillDate) errors.BillDate = "Bill Date is required";
     if (!formData.ReceivedDate) errors.ReceivedDate = "Received Date is required";
 
@@ -156,22 +202,37 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
     if (Object.keys(errors).length > 0) return;
 
     try {
-      const payload = {
-        id: formData.id,
-        supplierMasterId: Number(formData.supplierId),
-        pvcMasterId: Number(formData.pvcId),
-        new_RollNo: formData.new_RollNo,
-        batchNo: formData.batchNo,
-        qty_kg: Number(formData.qty_kg),
-        qty_Mtr: Number(formData.qty_Mtr),
-        comments: formData.comments,
-        billDate: formData.BillDate,
-        receivedDate: formData.ReceivedDate,
-        isActive: formData.isActive,
-      };
+      const selectedGramage = gramageOptions.find((g) => String(g.id) === formData.gramageMasterId);
+      const selectedWidth = widthOptions.find((w) => String(w.id) === formData.widthMasterId);
+      const selectedColour = colourOptions.find((c) => String(c.id) === formData.colourMasterId);
+
+      const payload = new FormData();
+      payload.append("supplierMasterId", String(Number(formData.supplierId)));
+      payload.append("pvcMasterId", String(Number(formData.pvcId)));
+      payload.append("new_RollNo", formData.new_RollNo);
+      payload.append("batchNo", formData.batchNo);
+      payload.append("qty_kg", String(Number(formData.qty_kg)));
+      payload.append("qty_Mtr", String(Number(formData.qty_Mtr)));
+      payload.append("comments", formData.comments);
+      payload.append("gramageMasterId", String(Number(formData.gramageMasterId)));
+      payload.append("gramageName", selectedGramage?.grm || "");
+      payload.append("widthMasterId", String(Number(formData.widthMasterId)));
+      payload.append("widthName", selectedWidth?.grm || "");
+      payload.append("colourMasterId", String(Number(formData.colourMasterId)));
+      payload.append("colourName", selectedColour?.name || "");
+      payload.append("billDate", formData.BillDate);
+      payload.append("receivedDate", formData.ReceivedDate);
+      payload.append("isActive", String(formData.isActive));
+      payload.append("existingAttachedFile", formData.attachedFile || "");
+      if (attachedFile) {
+        payload.append("attachedFile", attachedFile);
+      }
 
       const res = await axios.put(`${BASE_URL}/api/pvcinward/${formData.id}`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       if (res.status === 200 || res.status === 201) {
@@ -267,12 +328,12 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
                             </p>
                           )}
                          </div>
-            {/* BatchNo */}
+            {/* Invoice No */}
             <div>
-              <FormLabel>Batch No</FormLabel>
+              <FormLabel>Invoice No</FormLabel>
               <FormInput
                 type="text"
-                placeholder="Enter Batch No"
+                placeholder="Enter Invoice No"
                 value={formData.batchNo}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -315,7 +376,79 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
               {formErrors.qty_Mtr && <p className="text-red-500 text-sm">{formErrors.qty_Mtr}</p>}
             </div>
 
-               <div>
+            <div>
+              <FormLabel>Gramage</FormLabel>
+              {gramageLoaded ? (
+                <TomSelect
+                  value={formData.gramageMasterId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gramageMasterId: e.target.value })
+                  }
+                  options={{ placeholder: "Select Gramage", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Gramage</option>
+                  {gramageOptions.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.grm}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading gramage...</p>
+              )}
+              {formErrors.gramageMasterId && <p className="text-red-500 text-sm">{formErrors.gramageMasterId}</p>}
+            </div>
+
+            <div>
+              <FormLabel>Width</FormLabel>
+              {widthLoaded ? (
+                <TomSelect
+                  value={formData.widthMasterId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, widthMasterId: e.target.value })
+                  }
+                  options={{ placeholder: "Select Width", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Width</option>
+                  {widthOptions.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.grm}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading width...</p>
+              )}
+              {formErrors.widthMasterId && <p className="text-red-500 text-sm">{formErrors.widthMasterId}</p>}
+            </div>
+
+            <div>
+              <FormLabel>Colour</FormLabel>
+              {colourLoaded ? (
+                <TomSelect
+                  value={formData.colourMasterId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, colourMasterId: e.target.value })
+                  }
+                  options={{ placeholder: "Select Colour", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Colour</option>
+                  {colourOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading colour...</p>
+              )}
+              {formErrors.colourMasterId && <p className="text-red-500 text-sm">{formErrors.colourMasterId}</p>}
+            </div>
+
+            <div>
               <FormLabel>Comments</FormLabel>
               <FormInput
                 type="text"
@@ -328,6 +461,26 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
                 }}
               />
               {formErrors.comments && <p className="text-red-500 text-sm">{formErrors.comments}</p>}
+            </div>
+
+            <div>
+              <FormLabel>Attached File</FormLabel>
+              <FormInput
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setAttachedFile(file);
+                }}
+              />
+              {attachedFile ? (
+                <p className="mt-1 text-sm text-slate-600">
+                  Selected file: {attachedFile.name}
+                </p>
+              ) : formData.attachedFile ? (
+                <p className="mt-1 text-sm text-slate-600">
+                  Current file: {formData.attachedFile.split("/").pop()}
+                </p>
+              ) : null}
             </div>
 
             {/* Dates */}

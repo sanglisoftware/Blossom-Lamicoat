@@ -45,6 +45,7 @@ const CreateNewEmpoyeeModal: React.FC<CreateNewEmployeeModalProps> = ({ open, on
             middleName: "",
             lastName: "",
             mobileNo: "",
+            dailySalary: "",
             role: "",
             userName: "",
             password: "",
@@ -78,6 +79,7 @@ const CreateNewEmpoyeeModal: React.FC<CreateNewEmployeeModalProps> = ({ open, on
         middleName: "",
         lastName: "",
         mobileNo: "",
+        dailySalary: "",
         role: "",
         userName: "",
         password: "",
@@ -97,6 +99,14 @@ const CreateNewEmpoyeeModal: React.FC<CreateNewEmployeeModalProps> = ({ open, on
         if (!formData.lastName) errors.lastName = "Last name is required.";
         if (!formData.userName) errors.userName = "User Name is required.";
         if (!formData.role) errors.role = "Role is required.";
+        if (!formData.type) errors.type = "Type is required.";
+
+        const dailySalary = formData.dailySalary.trim();
+        if (!dailySalary) {
+            errors.dailySalary = "Daily salary is required.";
+        } else if (Number.isNaN(Number(dailySalary)) || Number(dailySalary) <= 0) {
+            errors.dailySalary = "Daily salary must be greater than 0.";
+        }
 
         //Mobile Number Validation
         const mobile = formData.mobileNo.trim();
@@ -140,6 +150,7 @@ const CreateNewEmpoyeeModal: React.FC<CreateNewEmployeeModalProps> = ({ open, on
             middleName: formData.middleName,
             lastName: formData.lastName,
             mobile: formData.mobileNo,
+            dailySalary: Number(formData.dailySalary),
             roleId: formData.role,
             username: formData.userName,
             activeStatus: 1, //default 
@@ -281,6 +292,25 @@ const CreateNewEmpoyeeModal: React.FC<CreateNewEmployeeModalProps> = ({ open, on
                                 }}
                             />
                             {formErrors.mobileNo && <p className="text-red-500 text-sm">{formErrors.mobileNo}</p>}
+                        </div>
+                        <div className="col-span-12 sm:col-span-4">
+                            <FormLabel htmlFor="dailySalary">Daily Salary</FormLabel>
+                            <FormInput
+                                id="dailySalary"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Daily Salary"
+                                value={formData.dailySalary}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setFormData({ ...formData, dailySalary: value })
+                                    if (value.trim()) {
+                                        setFormErrors((prev) => ({ ...prev, dailySalary: "" }));
+                                    }
+                                }}
+                            />
+                            {formErrors.dailySalary && <p className="text-red-500 text-sm">{formErrors.dailySalary}</p>}
                         </div>
                         <div className="col-span-12 sm:col-span-4">
                             <FormLabel htmlFor="role">Select Designation</FormLabel>

@@ -11,7 +11,6 @@ import Lucide from "@/components/Base/Lucide";
 import EditInwardReport from "./EditInwardReport";
 import AddInwardReport from "./AddInwardReport";
 
-
 interface Inward {
   id: number;
   FabricName: string;
@@ -180,9 +179,6 @@ const handleFilterChange = (value: string) => {
 };
 
 
-
-
-
   const handleDeleteWidth = async () => {
     if (!deleteInwardId) return;
 
@@ -225,7 +221,7 @@ const handleFilterChange = (value: string) => {
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Search batch no"
+            placeholder="Search..."
             className="w-64"
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}

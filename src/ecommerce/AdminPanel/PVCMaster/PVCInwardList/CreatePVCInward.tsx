@@ -26,12 +26,31 @@ interface PVCOptions {
   isActive: number;
 }
 
+interface GramageOption {
+  id: number;
+  grm: string;
+  isActive: number;
+}
+
+interface WidthOption {
+  id: number;
+  grm: string;
+  isActive: number;
+}
+
+interface ColourOption {
+  id: number;
+  name: string;
+  isActive: number;
+}
+
 const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
   open,
   onClose,
   onSuccess,
 }) => {
   const token = localStorage.getItem("token");
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
   const initialState = {
     supplierId: "",
@@ -41,6 +60,9 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     qty_kg: "",
     qty_Mtr: "",
     comments: "",
+    gramageMasterId: "",
+    widthMasterId: "",
+    colourMasterId: "",
     billDate: "",
     receivedDate: "",
   };
@@ -50,9 +72,15 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
 
   const [suppliers, setSuppliers] = useState<SupplierOptions[]>([]);
   const [pvcOptions, setPVCOptions] = useState<PVCOptions[]>([]);
+  const [gramageOptions, setGramageOptions] = useState<GramageOption[]>([]);
+  const [widthOptions, setWidthOptions] = useState<WidthOption[]>([]);
+  const [colourOptions, setColourOptions] = useState<ColourOption[]>([]);
 
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
   const [pvcOptionsLoaded, setPVCOptionsLoaded] = useState(false);
+  const [gramageLoaded, setGramageLoaded] = useState(false);
+  const [widthLoaded, setWidthLoaded] = useState(false);
+  const [colourLoaded, setColourLoaded] = useState(false);
 
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successModalConfig, setSuccessModalConfig] =
@@ -71,14 +99,33 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     const fetchPVC = async () => {
       try {
         setPVCOptionsLoaded(false);
-        const response = await axios.get(
-          `${BASE_URL}/api/pvcproductlist`,
-          {
+        setGramageLoaded(false);
+        setWidthLoaded(false);
+        setColourLoaded(false);
+
+        const [pvcResponse, gramageResponse, widthResponse, colourResponse] = await Promise.all([
+          axios.get(`${BASE_URL}/api/pvcproductlist`, {
             headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        setPVCOptions(response.data.items || []);
+          }),
+          axios.get(`${BASE_URL}/api/gramage`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${BASE_URL}/api/width`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get(`${BASE_URL}/api/colour`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        setPVCOptions(pvcResponse.data.items || []);
+        setGramageOptions(gramageResponse.data.items || []);
+        setWidthOptions(widthResponse.data.items || []);
+        setColourOptions(colourResponse.data.items || []);
         setPVCOptionsLoaded(true);
+        setGramageLoaded(true);
+        setWidthLoaded(true);
+        setColourLoaded(true);
       } catch (error) {
         console.error("Error fetching PVC:", error);
       }
@@ -120,9 +167,25 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     [pvcOptions]
   );
 
+  const activeGramages = useMemo(
+    () => gramageOptions.filter((g) => g.isActive === 1),
+    [gramageOptions]
+  );
+
+  const activeWidths = useMemo(
+    () => widthOptions.filter((w) => w.isActive === 1),
+    [widthOptions]
+  );
+
+  const activeColours = useMemo(
+    () => colourOptions.filter((c) => c.isActive === 1),
+    [colourOptions]
+  );
+
   const clearForm = () => {
     setFormData(initialState);
     setFormErrors({});
+    setAttachedFile(null);
   };
 
   // ================= HANDLE SUBMIT =================
@@ -132,10 +195,13 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     if (!formData.supplierId) errors.supplierId = "Supplier is required";
     if (!formData.PVCId) errors.PVCId = "PVC is required";
     if (!formData.new_RollNo) errors.new_RollNo = "New Roll No is required";
-    if (!formData.batchNo) errors.batchNo = "Batch No is required";
+    if (!formData.batchNo) errors.batchNo = "Invoice No is required";
     if (!formData.qty_kg) errors.qty_kg = "QTY (kg) is required";
     if (!formData.qty_Mtr) errors.qty_Mtr = "QTY (mtr) is required";
     if (!formData.comments) errors.comments = "Comments are required";
+    if (!formData.gramageMasterId) errors.gramageMasterId = "Gramage is required";
+    if (!formData.widthMasterId) errors.widthMasterId = "Width is required";
+    if (!formData.colourMasterId) errors.colourMasterId = "Colour is required";
     if (!formData.billDate) errors.billDate = "Bill Date is required";
     if (!formData.receivedDate)
       errors.receivedDate = "Received Date is required";
@@ -144,25 +210,40 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     if (Object.keys(errors).length > 0) return;
 
     try {
-      const payload = {
-        supplierMasterId: Number(formData.supplierId),
-        PVCMasterId: Number(formData.PVCId),
-        new_RollNo: formData.new_RollNo,
-        batchNo: formData.batchNo,
-        qty_kg: Number(formData.qty_kg),
-        qty_Mtr: Number(formData.qty_Mtr),
-        comments: formData.comments,
-        billDate: formData.billDate,
-        receivedDate: formData.receivedDate,
-        isActive: 1,
-      };
+      const selectedGramage = activeGramages.find((g) => String(g.id) === formData.gramageMasterId);
+      const selectedWidth = activeWidths.find((w) => String(w.id) === formData.widthMasterId);
+      const selectedColour = activeColours.find((c) => String(c.id) === formData.colourMasterId);
 
-      // ⚠️ Ensure this endpoint matches your backend
+      const payload = new FormData();
+      payload.append("supplierMasterId", String(Number(formData.supplierId)));
+      payload.append("pvcMasterId", String(Number(formData.PVCId)));
+      payload.append("new_RollNo", formData.new_RollNo);
+      payload.append("batchNo", formData.batchNo);
+      payload.append("qty_kg", String(Number(formData.qty_kg)));
+      payload.append("qty_Mtr", String(Number(formData.qty_Mtr)));
+      payload.append("comments", formData.comments);
+      payload.append("gramageMasterId", String(Number(formData.gramageMasterId)));
+      payload.append("gramageName", selectedGramage?.grm || "");
+      payload.append("widthMasterId", String(Number(formData.widthMasterId)));
+      payload.append("widthName", selectedWidth?.grm || "");
+      payload.append("colourMasterId", String(Number(formData.colourMasterId)));
+      payload.append("colourName", selectedColour?.name || "");
+      payload.append("billDate", formData.billDate);
+      payload.append("receivedDate", formData.receivedDate);
+      payload.append("isActive", "1");
+
+      if (attachedFile) {
+        payload.append("attachedFile", attachedFile);
+      }
+
       const response = await axios.post(
         `${BASE_URL}/api/pvcinward`,
         payload,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
@@ -273,88 +354,174 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
               )}
             </div>
 
-            <div>
-              <FormLabel>New Roll No</FormLabel>
-              <FormInput
-                type="text"
-                value={formData.new_RollNo}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    new_RollNo: e.target.value,
-                  })
-                }
-              />
-              {formErrors.new_RollNo && (
-                <p className="text-red-500 text-sm">
-                  {formErrors.new_RollNo}
-                </p>
-              )}
-             </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <FormLabel>New Roll No</FormLabel>
+                <FormInput
+                  type="text"
+                  value={formData.new_RollNo}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      new_RollNo: e.target.value,
+                    })
+                  }
+                />
+                {formErrors.new_RollNo && (
+                  <p className="text-red-500 text-sm">
+                    {formErrors.new_RollNo}
+                  </p>
+                )}
+              </div>
 
-            
-
-            {/* Batch */}
-            <div>
-              <FormLabel>Batch No</FormLabel>
-              <FormInput
-                type="text"
-                value={formData.batchNo}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    batchNo: e.target.value,
-                  })
-                }
-              />
-              {formErrors.batchNo && (
-                <p className="text-red-500 text-sm">
-                  {formErrors.batchNo}
-                </p>
-              )}
+              <div>
+                <FormLabel>Invoice No</FormLabel>
+                <FormInput
+                  type="text"
+                  value={formData.batchNo}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      batchNo: e.target.value,
+                    })
+                  }
+                />
+                {formErrors.batchNo && (
+                  <p className="text-red-500 text-sm">
+                    {formErrors.batchNo}
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* QTY KG */}
-            <div>
-              <FormLabel>QTY (kg)</FormLabel>
-              <FormInput
-                type="number"
-                value={formData.qty_kg}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    qty_kg: e.target.value,
-                  })
-                }
-              />
-              {formErrors.qty_kg && (
-                <p className="text-red-500 text-sm">
-                  {formErrors.qty_kg}
-                </p>
-              )}
-            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <FormLabel>QTY (kg)</FormLabel>
+                <FormInput
+                  type="number"
+                  value={formData.qty_kg}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      qty_kg: e.target.value,
+                    })
+                  }
+                />
+                {formErrors.qty_kg && (
+                  <p className="text-red-500 text-sm">
+                    {formErrors.qty_kg}
+                  </p>
+                )}
+              </div>
 
-            {/* QTY MTR */}
-            <div>
-              <FormLabel>QTY (MTR)</FormLabel>
-              <FormInput
-                type="number"
-                value={formData.qty_Mtr}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    qty_Mtr: e.target.value,
-                  })
-                }
-              />
-              {formErrors.qty_Mtr && (
-                <p className="text-red-500 text-sm">
-                  {formErrors.qty_Mtr}
-                </p>
-              )}
+              <div>
+                <FormLabel>QTY (MTR)</FormLabel>
+                <FormInput
+                  type="number"
+                  value={formData.qty_Mtr}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      qty_Mtr: e.target.value,
+                    })
+                  }
+                />
+                {formErrors.qty_Mtr && (
+                  <p className="text-red-500 text-sm">
+                    {formErrors.qty_Mtr}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Comments */}
+            <div>
+              <FormLabel>Gramage</FormLabel>
+              {gramageLoaded ? (
+                <TomSelect
+                  value={formData.gramageMasterId}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      gramageMasterId: e.target.value,
+                    })
+                  }
+                  options={{ placeholder: "Select Gramage", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Gramage</option>
+                  {activeGramages.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.grm}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading gramage...</p>
+              )}
+              {formErrors.gramageMasterId && (
+                <p className="text-red-500 text-sm">{formErrors.gramageMasterId}</p>
+              )}
+            </div>
+
+            <div>
+              <FormLabel>Width</FormLabel>
+              {widthLoaded ? (
+                <TomSelect
+                  value={formData.widthMasterId}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      widthMasterId: e.target.value,
+                    })
+                  }
+                  options={{ placeholder: "Select Width", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Width</option>
+                  {activeWidths.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.grm}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading width...</p>
+              )}
+              {formErrors.widthMasterId && (
+                <p className="text-red-500 text-sm">{formErrors.widthMasterId}</p>
+              )}
+            </div>
+
+            <div>
+              <FormLabel>Colour</FormLabel>
+              {colourLoaded ? (
+                <TomSelect
+                  value={formData.colourMasterId}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      colourMasterId: e.target.value,
+                    })
+                  }
+                  options={{ placeholder: "Select Colour", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Colour</option>
+                  {activeColours.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading colour...</p>
+              )}
+              {formErrors.colourMasterId && (
+                <p className="text-red-500 text-sm">{formErrors.colourMasterId}</p>
+              )}
+            </div>
+
             <div>
               <FormLabel>Comments</FormLabel>
               <FormInput
@@ -367,6 +534,22 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                   })
                 }
               />
+            </div>
+
+            <div>
+              <FormLabel>Attached File</FormLabel>
+              <FormInput
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setAttachedFile(file);
+                }}
+              />
+              {attachedFile && (
+                <p className="mt-1 text-sm text-slate-600">
+                  Selected file: {attachedFile.name}
+                </p>
+              )}
             </div>
 
             {/* Dates */}

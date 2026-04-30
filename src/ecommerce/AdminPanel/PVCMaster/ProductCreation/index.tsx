@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, createRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Button from "@/components/Base/Button";
 import { FormInput } from "@/components/Base/Form";
 import { createIcons, icons } from "lucide";
@@ -11,17 +11,30 @@ import Lucide from "@/components/Base/Lucide";
 import AddProduct from "./AddProduct";
 import EditProduct from "./EditProduct";
 
+type PVCProductRow = {
+  id: number;
+  name?: string;
+  comments?: string;
+};
+
+type PVCProductApiRow = {
+  id?: number;
+  Id?: number;
+  name?: string;
+  Name?: string;
+  comments?: string;
+  Comments?: string;
+};
+
 function Main() {
   const token = localStorage.getItem("token");
-  const tableRef = createRef<HTMLDivElement>();
+  const tableRef = useRef<HTMLDivElement | null>(null);
   const tabulator = useRef<Tabulator>();
 
   const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
-  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-const searchValueRef = useRef(""); // only updated when debounce triggers
 const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [tableData, setTableData] = useState<PVCProductRow[]>([]);
 
   const [addPVcproductModal, setAddPVcproductModal] = useState(false);
   const [editPVcproductModal, setEditPVcproductModal] = useState(false);
@@ -36,37 +49,48 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
     filterValueRef.current = filterValue;
   }, [filterValue]);
 
-  const initTabulator = () => {
+  const applyGlobalFilter = (value: string) => {
+    if (!tabulator.current) return;
+
+    const term = value.trim().toLowerCase();
+    if (!term) {
+      tabulator.current.clearFilter(true);
+      return;
+    }
+
+    tabulator.current.setFilter((row: PVCProductRow) =>
+      [row.name, row.comments].some((fieldValue) =>
+        String(fieldValue ?? "").toLowerCase().includes(term)
+      )
+    );
+  };
+
+  const fetchPVCProductData = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/pvcproductlist?page=1&size=1000`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+
+      const items = response?.data?.items ?? response?.data?.Items ?? [];
+      const normalizedItems: PVCProductRow[] = (items as PVCProductApiRow[]).map((item) => ({
+        id: Number(item.id ?? item.Id ?? 0),
+        name: String(item.name ?? item.Name ?? ""),
+        comments: String(item.comments ?? item.Comments ?? ""),
+      }));
+
+      setTableData(normalizedItems);
+    } catch (error) {
+      console.error("Failed to fetch PVC product list:", error);
+      setTableData([]);
+    }
+  };
+
+  const initTabulator = (data: PVCProductRow[]) => {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      ajaxURL: `${BASE_URL}/api/pvcproductlist`,
-      ajaxConfig: {
-        method: "GET",
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      },
-      ajaxParams: () => {
-        const page = tabulator.current?.getPage() || 1;
-        const size = tabulator.current?.getPageSize() || 10;
-
-        const params: any = { page, size };
-        if (filterValueRef.current) {
-          params["filter[0][type]"] = "like";
-          params["filter[0][value]"] = filterValueRef.current;
-        }
-        return params;
-      },
-      ajaxResponse: (url, params, response) => {
-        return {
-          last_page: Math.ceil(response.totalCount / (params.size || 10)),
-          data: response.items,
-        };
-      },
-      ajaxContentType: "json",
+      data,
       pagination: true,
-      paginationMode: "remote",
-      filterMode: "remote",
-      sortMode: "remote",
       layout: "fitColumns",
       responsiveLayout: "collapse",
       placeholder: "No matching records found",
@@ -82,9 +106,6 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
           width: 80,
         },
         { title: "Name", field: "name", hozAlign: "center",  headerHozAlign: "center",minWidth: 180 },
-        { title: "Gramage", field: "gramageMasterName", hozAlign: "center",  headerHozAlign: "center",minWidth: 200 },
-        { title: "WIdth", field: "widthMasterName", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
-        { title: "Colour", field: "colourMasterName",hozAlign: "center",  headerHozAlign: "center", minWidth: 200 },
         { title: "Comments", field: "comments", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
 
         {
@@ -150,7 +171,7 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
   };
 
   const refreshTable = () => {
-    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
+    fetchPVCProductData();
   };
 
 const handleFilterChange = (value: string) => {
@@ -158,21 +179,8 @@ const handleFilterChange = (value: string) => {
 
   if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
-  
   searchTimeout.current = setTimeout(() => {
-    searchValueRef.current = value.trim();
-
-    if (tabulator.current) {
-      tabulator.current.setData(`${BASE_URL}/api/pvcproductlist`, {
-        params: {
-          page: 1,
-          size: tabulator.current.getPageSize() || 10,
-          ...(searchValueRef.current
-            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
-            : {}),
-        },
-      });
-    }
+    applyGlobalFilter(value);
   }, 600);
 };
 
@@ -198,14 +206,28 @@ const handleFilterChange = (value: string) => {
   };
 
   useEffect(() => {
-    initTabulator();
+    fetchPVCProductData();
     const handleResize = () => {
       tabulator.current?.redraw();
       createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     };
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+      window.removeEventListener("resize", handleResize);
+      tabulator.current?.destroy();
+      tabulator.current = undefined;
+    };
   }, []);
+
+  useEffect(() => {
+    if (!tableRef.current) return;
+
+    tabulator.current?.destroy();
+    tabulator.current = undefined;
+    initTabulator(tableData);
+    applyGlobalFilter(filterValueRef.current);
+  }, [tableData]);
 
 
   return (

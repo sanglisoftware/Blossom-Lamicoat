@@ -208,7 +208,7 @@ const handleFilterChange = (value: string) => {
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Search chemicals..."
+            placeholder="Search ..."
             className="w-64"
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}

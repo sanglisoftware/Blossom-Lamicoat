@@ -3,33 +3,14 @@ import { FormInput, FormLabel } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
-import { useEffect, useState, useMemo } from "react";
+import { useState } from "react";
 import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
 import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
-import TomSelect from "@/components/Base/TomSelect";
 
 interface AddPVcproductProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-}
-
-interface GramageOptions {
-  id: number;
-  grm: string;
-  isActive: number;
-}
-
-interface WidthOptions {
-  id: number;
-  grm: string;
-  isActive: number;
-}
-
-interface ColourOptions {
-  id: number;
-  name: string;
-  isActive: number;
 }
 
 const AddPVcproduct: React.FC<AddPVcproductProps> = ({
@@ -41,19 +22,8 @@ const AddPVcproduct: React.FC<AddPVcproductProps> = ({
 
   const [formData, setFormData] = useState({
     name: "",
-    gramageMasterId: "",
-    widthMasterId: "",
-    colourMasterId: "",
     comments: "",
   });
-
-  const [gramages, setGramages] = useState<GramageOptions[]>([]);
-  const [widths, setWidths] = useState<WidthOptions[]>([]);
-  const [colours, setColours] = useState<ColourOptions[]>([]);
-
-  const [gramageLoaded, setGramageLoaded] = useState(false);
-  const [widthLoaded, setWidthLoaded] = useState(false);
-  const [colourLoaded, setColourLoaded] = useState(false);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -69,89 +39,8 @@ const AddPVcproduct: React.FC<AddPVcproductProps> = ({
   const clearFormData = () =>
     setFormData({
       name: "",
-      gramageMasterId: "",
-      widthMasterId: "",
-      colourMasterId: "",
       comments: "",
     });
-
-  /* ---------------- FETCH DATA ---------------- */
-
-  useEffect(() => {
-    if (!open) return;
-
-    const fetchAll = async () => {
-      try {
-        setGramageLoaded(false);
-        setWidthLoaded(false);
-        setColourLoaded(false);
-
-        const [gRes, wRes, cRes] = await Promise.all([
-          axios.get(`${BASE_URL}/api/gramage`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${BASE_URL}/api/width`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${BASE_URL}/api/colour`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-
-        setGramages(gRes.data.items || []);
-        setWidths(wRes.data.items || []);
-        setColours(cRes.data.items || []);
-
-        setGramageLoaded(true);
-        setWidthLoaded(true);
-        setColourLoaded(true);
-      } catch (error) {
-        console.error("Dropdown fetch error:", error);
-      }
-    };
-
-    fetchAll();
-  }, [open, token]);
-
-  /* ---------------- FILTER ACTIVE ---------------- */
-
-  const activeGramages = useMemo(
-    () => gramages.filter((g) => g.isActive === 1),
-    [gramages]
-  );
-
-  const activeWidths = useMemo(
-    () => widths.filter((w) => w.isActive === 1),
-    [widths]
-  );
-
-  const activeColours = useMemo(
-    () => colours.filter((c) => c.isActive === 1),
-    [colours]
-  );
-
-  /* ---------------- HANDLE CHANGE ---------------- */
-
-  const handleGramageChange = (e: { target: { value: string } }) => {
-  setFormData((prev) => ({
-    ...prev,
-    gramageMasterId: e.target.value,
-  }));
-};
-
-const handleWidthChange = (e: { target: { value: string } }) => {
-  setFormData((prev) => ({
-    ...prev,
-    widthMasterId: e.target.value,
-  }));
-};
-
-const handleColourChange = (e: { target: { value: string } }) => {
-  setFormData((prev) => ({
-    ...prev,
-    colourMasterId: e.target.value,
-  }));
-};
 
   /* ---------------- SUBMIT ---------------- */
 
@@ -159,13 +48,6 @@ const handleColourChange = (e: { target: { value: string } }) => {
     const errors: Record<string, string> = {};
 
     if (!formData.name) errors.name = "Name is required";
-    if (!formData.gramageMasterId)
-      errors.gramageMasterId = "Gramage is required";
-    if (!formData.widthMasterId)
-      errors.widthMasterId = "Width is required";
-    if (!formData.colourMasterId)
-      errors.colourMasterId = "Colour is required";
-    if (!formData.comments) errors.comments = "Comments are required";
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -173,9 +55,6 @@ const handleColourChange = (e: { target: { value: string } }) => {
     try {
       const payload = {
         name: formData.name,
-        gramageMasterId: Number(formData.gramageMasterId),
-        widthMasterId: Number(formData.widthMasterId),
-        colourMasterId: Number(formData.colourMasterId),
         comments: formData.comments,
         isActive: 1,
       };
@@ -238,84 +117,6 @@ const handleColourChange = (e: { target: { value: string } }) => {
               )}
             </div>
 
-            {/* Gramage */}
-            <div>
-              <FormLabel>Gramage</FormLabel>
-              {gramageLoaded ? (
-                <TomSelect
-                  value={formData.gramageMasterId}
-                  onChange={handleGramageChange}
-                  options={{ placeholder: "Select Gramage" }}
-                >
-                  <option value="">Select Gramage</option>
-                  {activeGramages.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.grm}
-                    </option>
-                  ))}
-                </TomSelect>
-              ) : (
-                <p>Loading...</p>
-              )}
-              {formErrors.gramageMasterId && (
-                <p className="text-red-500 text-sm">
-                  {formErrors.gramageMasterId}
-                </p>
-              )}
-            </div>
-
-            {/* Width */}
-            <div>
-              <FormLabel>Width</FormLabel>
-              {widthLoaded ? (
-                <TomSelect
-                  value={formData.widthMasterId}
-                  onChange={handleWidthChange}
-                  options={{ placeholder: "Select Width" }}
-                >
-                  <option value="">Select Width</option>
-                  {activeWidths.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.grm}
-                    </option>
-                  ))}
-                </TomSelect>
-              ) : (
-                <p>Loading...</p>
-              )}
-              {formErrors.widthMasterId && (
-                <p className="text-red-500 text-sm">
-                  {formErrors.widthMasterId}
-                </p>
-              )}
-            </div>
-
-            {/* Colour */}
-            <div>
-              <FormLabel>Colour</FormLabel>
-              {colourLoaded ? (
-                <TomSelect
-                  value={formData.colourMasterId}
-                  onChange={handleColourChange}
-                  options={{ placeholder: "Select Colour" }}
-                >
-                  <option value="">Select Colour</option>
-                  {activeColours.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </TomSelect>
-              ) : (
-                <p>Loading...</p>
-              )}
-              {formErrors.colourMasterId && (
-                <p className="text-red-500 text-sm">
-                  {formErrors.colourMasterId}
-                </p>
-              )}
-            </div>
-
             {/* Comments */}
             <div>
               <FormLabel>Comments</FormLabel>
@@ -335,10 +136,10 @@ const handleColourChange = (e: { target: { value: string } }) => {
           </Dialog.Description>
 
           <Dialog.Footer>
-            <Button variant="secondary" onClick={onClose}>
+            <Button type="button" variant="secondary" className="w-24 mr-2" onClick={onClose}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSubmit}>
+             <Button type="button" variant="primary" className="w-24" onClick={handleSubmit}>
               Add
             </Button>
           </Dialog.Footer>

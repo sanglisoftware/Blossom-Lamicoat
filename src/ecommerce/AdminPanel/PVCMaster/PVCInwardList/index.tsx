@@ -24,6 +24,11 @@ interface PVCInward {
  
 }
 
+const formatDateValue = (value?: string) => {
+  if (!value) return "";
+  return String(value).split("T")[0];
+};
+
 function Main() {
   const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
@@ -84,30 +89,43 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
       paginationMode: "remote",
       filterMode: "remote",
       sortMode: "remote",
-      layout: "fitColumns",
-      responsiveLayout: "collapse",
+      layout: "fitDataStretch",
+      responsiveLayout: false,
       placeholder: "No matching records found",
       paginationSize: 10,
       paginationSizeSelector: [10, 20, 30, 50],
       columns: [
-        { title: "Sr.No", hozAlign: "center",headerHozAlign: "center",formatter: "rownum", width: 80 },
-        { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 150 },
-        { title: "PVC", hozAlign: "center", headerHozAlign: "center", field: "pvcMasterName", minWidth: 150 },
-        { title: "New Roll No", hozAlign: "center", headerHozAlign: "center", field: "new_RollNo", minWidth: 100 },
-        { title: "Batch No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 100 },
-        { title: "QTY (kg)", hozAlign: "center", headerHozAlign: "center", field: "qty_kg", minWidth: 200 },
-        { title: "QTY (MTR)", hozAlign: "center", headerHozAlign: "center", field: "qty_Mtr", minWidth: 200 },
-        { title: "Comments", hozAlign: "center", headerHozAlign: "center", field: "comments", minWidth: 200 },
+        { title: "Sr.No", hozAlign: "center", headerHozAlign: "center", formatter: "rownum", width: 80, cssClass: "whitespace-nowrap" },
+        { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "PVC", hozAlign: "center", headerHozAlign: "center", field: "pvcMasterName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "Gramage", hozAlign: "center", headerHozAlign: "center", field: "gramageName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "Width", hozAlign: "center", headerHozAlign: "center", field: "widthName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "Colour", hozAlign: "center", headerHozAlign: "center", field: "colourName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "New Roll No", hozAlign: "center", headerHozAlign: "center", field: "new_RollNo", minWidth: 100, cssClass: "whitespace-nowrap" },
+        { title: "Invoice No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 100, cssClass: "whitespace-nowrap" },
+        { title: "QTY (kg)", hozAlign: "center", headerHozAlign: "center", field: "qty_kg", minWidth: 140, cssClass: "whitespace-nowrap" },
+        { title: "QTY (MTR)", hozAlign: "center", headerHozAlign: "center", field: "qty_Mtr", minWidth: 140, cssClass: "whitespace-nowrap" },
+        { title: "Bill Date", hozAlign: "center", headerHozAlign: "center", field: "billDate", minWidth: 130, formatter: (cell) => formatDateValue(cell.getValue()), cssClass: "whitespace-nowrap" },
+        { title: "Received Date", hozAlign: "center", headerHozAlign: "center", field: "receivedDate", minWidth: 140, formatter: (cell) => formatDateValue(cell.getValue()), cssClass: "whitespace-nowrap" },
+        {
+          title: "Comments",
+          hozAlign: "center",
+          headerHozAlign: "center",
+          field: "comments",
+          minWidth: 220,
+          cssClass: "whitespace-nowrap overflow-hidden text-ellipsis",
+        },
 
         {
           title: "Actions",
           field: "actions",
           hozAlign: "center",
           headerHozAlign: "center",
-          minWidth: 150,
+          minWidth: 180,
+          cssClass: "whitespace-nowrap",
           formatter: (cell) => {
             const container = document.createElement("div");
-container.className = "flex justify-center items-center gap-2";
+container.className = "flex justify-center items-center gap-2 whitespace-nowrap";
 
             const rowData = cell.getRow().getData();
             const actions = [
@@ -229,7 +247,7 @@ const handleFilterChange = (value: string) => {
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Search batch no"
+            placeholder="Search..."
             className="w-64"
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}
@@ -293,4 +311,3 @@ const handleFilterChange = (value: string) => {
 }
 
 export default Main;
-

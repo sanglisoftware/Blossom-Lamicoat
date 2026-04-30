@@ -11,78 +11,44 @@ import Lucide from "@/components/Base/Lucide";
 import AddInwardList from "./AddInwardList";
 import EditInwardList from "./EditInwardList";
 
-
-
 interface ChemicalInward {
   id: number;
-  ChemicalrName: string;
-  QTY: number;
-  Supplier: string;
-  BatchNo: number;
-
- 
+  chemicalMasterName?: string;
+  qty?: number;
+  supplierMasterName?: string;
+  batchNo?: number;
+  billDate?: string;
+  receivedDate?: string;
 }
+
+const formatDateValue = (value?: string) => {
+  if (!value) return "";
+  return String(value).split("T")[0];
+};
 
 function Main() {
   const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator | null>(null);
-  const searchValueRef = useRef("");
-const searchTimeout = useRef<NodeJS.Timeout | null>(null);
-
   const [filterValue, setFilterValue] = useState("");
-  const filterValueRef = useRef(filterValue);
-  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [tableData, setTableData] = useState<ChemicalInward[]>([]);
 
   const [addNewInwardModal, setAddNewInwardModal] = useState(false);
   const [editInwardModal, setEditInwardModal] = useState(false);
    const [editingInwardId, setEditingInwardId] = useState<number | null>(null);
-  
-  const [InwardoEdit, setInwardToEdit] = useState<any>(null);
-    const [searchTerm, setSearchTerm] = useState("");
-  const searchRef = useRef(searchTerm);
- 
 
  const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
   const [deleteInwardId, setDeleteInwardId] = useState<number | null>(null);
   const deleteButtonRef = useRef(null);
 
-  useEffect(() => {
-    filterValueRef.current = filterValue;
-  }, [filterValue]);
-
   const initTabulator = () => {
     if (!tableRef.current) return;
 
     tabulator.current = new Tabulator(tableRef.current, {
-      ajaxURL: `${BASE_URL}/api/chemicalinward`,
-      ajaxConfig: {
-        method: "GET",
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      },
-      ajaxParams: () => {
-        const page = tabulator.current?.getPage() || 1;
-        const size = tabulator.current?.getPageSize() || 10;
-
-        const params: any = { page, size };
-        if (filterValueRef.current) {
-          params["filter[0][type]"] = "like";
-          params["filter[0][value]"] = filterValueRef.current;
-        }
-        return params;
-      },
-      ajaxResponse: (url, params, response) => {
-        return {
-          last_page: Math.ceil(response.totalCount / (params.size || 10)),
-          data: response.items,
-        };
-      },
-      ajaxContentType: "json",
+      data: [],
       pagination: true,
-      paginationMode: "remote",
-      filterMode: "remote",
-      sortMode: "remote",
       layout: "fitColumns",
       responsiveLayout: "collapse",
       placeholder: "No matching records found",
@@ -93,7 +59,9 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
         { title: "Chemical", hozAlign: "center", headerHozAlign: "center", field: "chemicalMasterName", minWidth: 150 },
        { title: "QTY", hozAlign: "center", headerHozAlign: "center", field: "qty", minWidth: 200 },        
         { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 150 },     
-        { title: "Batch No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 100 },
+        { title: "Invoice No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 100 },
+        { title: "Bill Date", hozAlign: "center", headerHozAlign: "center", field: "billDate", minWidth: 130, formatter: (cell) => formatDateValue(cell.getValue()) },
+        { title: "Received Date", hozAlign: "center", headerHozAlign: "center", field: "receivedDate", minWidth: 140, formatter: (cell) => formatDateValue(cell.getValue()) },
        
         {
           title: "Actions",
@@ -152,36 +120,51 @@ container.className = "flex justify-center items-center gap-2";
     });
   };
 
-  const refreshTable = () => {
-    tabulator.current?.setPage(1).then(() => tabulator.current?.replaceData());
+  const fetchInwardData = async () => {
+    try {
+      const response = await axios.get(`${BASE_URL}/api/chemicalinward?page=1&size=1000`, {
+        headers: { Authorization: token ? `Bearer ${token}` : "" },
+      });
+      setTableData(response.data?.items || []);
+    } catch (error) {
+      console.error("Error fetching chemical inward list:", error);
+    }
   };
 
-const handleFilterChange = (value: string) => {
-  setFilterValue(value);
+  const refreshTable = () => {
+    void fetchInwardData();
+  };
 
-  if (searchTimeout.current) clearTimeout(searchTimeout.current);
+  const applyFilters = () => {
+    if (!tabulator.current) return;
 
-  
-  searchTimeout.current = setTimeout(() => {
-    searchValueRef.current = value.trim();
+    const normalizedSearch = filterValue.trim().toLowerCase();
 
-    if (tabulator.current) {
-      tabulator.current.setData(`${BASE_URL}/api/chemicalinward`, {
-        params: {
-          page: 1,
-          size: tabulator.current.getPageSize() || 10,
-          ...(searchValueRef.current
-            ? { "filter[0][type]": "like", "filter[0][value]": searchValueRef.current }
-            : {}),
-        },
-      });
-    }
-  }, 600);
-};
+    tabulator.current.setData(
+      tableData.filter((row) => {
+        const searchableText = [
+          row.chemicalMasterName,
+          row.supplierMasterName,
+          row.batchNo,
+          row.qty,
+          formatDateValue(row.billDate),
+          formatDateValue(row.receivedDate),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
+        const matchesSearch =
+          !normalizedSearch || searchableText.includes(normalizedSearch);
 
+        const billDateValue = formatDateValue(row.billDate);
+        const matchesFromDate = !fromDate || (billDateValue && billDateValue >= fromDate);
+        const matchesToDate = !toDate || (billDateValue && billDateValue <= toDate);
 
-
+        return matchesSearch && matchesFromDate && matchesToDate;
+      })
+    );
+  };
 
   const handleDeleteWidth = async () => {
     if (!deleteInwardId) return;
@@ -202,6 +185,7 @@ const handleFilterChange = (value: string) => {
 
   useEffect(() => {
     initTabulator();
+    void fetchInwardData();
     const handleResize = () => {
       tabulator.current?.redraw();
       createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
@@ -209,6 +193,10 @@ const handleFilterChange = (value: string) => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [tableData, filterValue, fromDate, toDate]);
 
 
   return (
@@ -221,15 +209,49 @@ const handleFilterChange = (value: string) => {
       </div>
 
       <div className="p-5 box">
-        <div className="flex items-center mb-3">
+        <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-end">
+          <div className="flex items-center">
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Search batch no"
+            placeholder="Search ..."
             className="w-64"
             value={filterValue}
-            onChange={(e) => handleFilterChange(e.target.value)}
+            onChange={(e) => setFilterValue(e.target.value)}
           />
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div>
+              <span className="mb-1 block font-medium">From Date</span>
+              <FormInput
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+              />
+            </div>
+            <div>
+              <span className="mb-1 block font-medium">To Date</span>
+              <FormInput
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline-secondary"
+                onClick={() => {
+                  setFilterValue("");
+                  setFromDate("");
+                  setToDate("");
+                }}
+              >
+                Clear Filter
+              </Button>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -289,4 +311,3 @@ const handleFilterChange = (value: string) => {
 }
 
 export default Main;
-

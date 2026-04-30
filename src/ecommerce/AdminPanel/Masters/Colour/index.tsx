@@ -218,6 +218,7 @@ const handleFilterChange = (value: string) => {
             className="w-64"
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}
+            placeholder="search..."
           />
         </div>
 

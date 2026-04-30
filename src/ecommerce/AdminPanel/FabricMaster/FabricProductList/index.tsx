@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, createRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Button from "@/components/Base/Button";
 import { FormInput } from "@/components/Base/Form";
 import { createIcons, icons } from "lucide";
@@ -14,15 +14,39 @@ import EditProductList from "./EditProductList";
 type FabricProductRow = {
   id: number;
   name?: string;
-  fGramageMasterName?: string;
-  colourMasterName?: string;
   comments?: string;
+};
+
+const getFabricProductItems = async (token: string | null): Promise<FabricProductRow[]> => {
+  const headers = { Authorization: token ? `Bearer ${token}` : "" };
+
+  try {
+    const response = await axios.get(`${BASE_URL}/api/fproductlist?page=1&size=1000`, {
+      headers,
+    });
+    return response?.data?.items ?? response?.data?.Items ?? response?.data ?? [];
+  } catch (error) {
+    if (!axios.isAxiosError(error) || error.response?.status !== 500) {
+      throw error;
+    }
+
+    const fallbackResponse = await axios.get(`${BASE_URL}/api/fproductlist`, {
+      headers,
+    });
+    return (
+      fallbackResponse?.data?.items ??
+      fallbackResponse?.data?.Items ??
+      fallbackResponse?.data ??
+      []
+    );
+  }
 };
 
 function Main() {
   const token = localStorage.getItem("token");
-  const tableRef = createRef<HTMLDivElement>();
-  const tabulator = useRef<Tabulator>();
+  const tableRef = useRef<HTMLDivElement | null>(null);
+  const tabulator = useRef<Tabulator | null>(null);
+  const tableReadyRef = useRef(false);
 
   const [filterValue, setFilterValue] = useState("");
   const filterValueRef = useRef(filterValue);
@@ -52,7 +76,7 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
     }
 
     tabulator.current.setFilter((row: FabricProductRow) =>
-      [row.name, row.fGramageMasterName, row.colourMasterName, row.comments].some(
+      [row.name, row.comments].some(
         (fieldValue) => String(fieldValue ?? "").toLowerCase().includes(term)
       )
     );
@@ -60,15 +84,21 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
 
   const fetchFProductData = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/fproductlist?page=1&size=1000`, {
-        headers: { Authorization: token ? `Bearer ${token}` : "" },
-      });
-
-      const items = response?.data?.items ?? response?.data?.Items ?? [];
+      const items = await getFabricProductItems(token);
       setTableData(items);
+      if (tabulator.current && tableReadyRef.current) {
+        tabulator.current.replaceData(items);
+        applyGlobalFilter(filterValueRef.current);
+      }
     } catch (error) {
-      console.error("Failed to fetch fabric product list:", error);
+      console.error(
+        "Failed to fetch fabric product list from both paginated and fallback endpoints:",
+        error
+      );
       setTableData([]);
+      if (tabulator.current && tableReadyRef.current) {
+        tabulator.current.replaceData([]);
+      }
     }
   };
 
@@ -93,8 +123,6 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
           width: 80,
         },
         { title: "Name", field: "name", hozAlign: "center",  headerHozAlign: "center",minWidth: 180 },
-        { title: "GRM", field: "fGramageMasterName", hozAlign: "center",  headerHozAlign: "center",minWidth: 200 },
-        { title: "Colour", field: "colourMasterName",hozAlign: "center",  headerHozAlign: "center", minWidth: 200 },
         { title: "Comments", field: "comments", hozAlign: "center",  headerHozAlign: "center",minWidth: 150 },
 
         {
@@ -154,13 +182,17 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
         },
       ],
     });
+    tabulator.current.on("tableBuilt", () => {
+      tableReadyRef.current = true;
+    });
+
  tabulator.current.on("renderComplete", () => {
       createIcons({ icons, attrs: { "stroke-width": 1.5 }, nameAttr: "data-lucide" });
     });
   };
 
-  const refreshTable = () => {
-    fetchFProductData();
+  const refreshTable = async () => {
+    await fetchFProductData();
   };
 
 const handleFilterChange = (value: string) => {
@@ -204,13 +236,17 @@ const handleFilterChange = (value: string) => {
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
+      tableReadyRef.current = false;
       tabulator.current?.destroy();
+      tabulator.current = null;
     };
   }, []);
 
   useEffect(() => {
-    tabulator.current?.setData(tableData);
-    applyGlobalFilter(filterValueRef.current);
+    if (tabulator.current && tableReadyRef.current) {
+      tabulator.current.replaceData(tableData);
+      applyGlobalFilter(filterValueRef.current);
+    }
   }, [tableData]);
 
 
@@ -228,7 +264,7 @@ const handleFilterChange = (value: string) => {
           <span className="mr-2 font-medium">Search:</span>
           <FormInput
             type="text"
-            placeholder="Search all fields..."
+            placeholder="Search..."
             className="w-64"
             value={filterValue}
             onChange={(e) => handleFilterChange(e.target.value)}

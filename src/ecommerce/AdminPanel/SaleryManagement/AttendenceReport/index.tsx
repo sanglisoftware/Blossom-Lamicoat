@@ -5,32 +5,6 @@ import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "@/assets/css/vendors/tabulator.css";
 import { BASE_URL } from "@/ecommerce/config/config";
 
-type SalaryApiItem = {
-  id?: number;
-  Id?: number;
-  employeeId?: number;
-  EmployeeId?: number;
-  employeeName?: string;
-  EmployeeName?: string;
-  type?: number | string | null;
-  Type?: number | string | null;
-  attendance?: number;
-  Attendance?: number;
-  extraHours?: number;
-  ExtraHours?: number;
-  totalLate?: number;
-  TotalLate?: number;
-  halfDay?: number;
-  HalfDay?: number;
-  createdDate?: string;
-  CreatedDate?: string;
-};
-
-type SalaryPagedResponse = {
-  items?: SalaryApiItem[];
-  Items?: SalaryApiItem[];
-};
-
 type EmployeeApiItem = {
   id?: number;
   Id?: number;
@@ -61,6 +35,34 @@ type AttendanceRow = {
   HalfDay: number;
 };
 
+type AttendanceStatus = "Present" | "Absent" | "Half Day";
+
+type SavedAttendanceDay = {
+  note?: string;
+  rows?: Array<{
+    id: number;
+    status: AttendanceStatus;
+    inTime?: string;
+    outTime?: string;
+  }>;
+};
+
+type SavedAttendanceMap = Record<string, SavedAttendanceDay>;
+
+const DAILY_ATTENDANCE_STORAGE_KEY = "daily-attendence-records";
+
+const getSavedAttendanceMap = (): SavedAttendanceMap => {
+  try {
+    const raw = localStorage.getItem(DAILY_ATTENDANCE_STORAGE_KEY);
+    if (!raw) return {};
+
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
 function Main() {
   const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
@@ -75,19 +77,15 @@ function Main() {
   useEffect(() => {
     const fetchAttendanceReport = async () => {
       try {
-        const [salaryResponse, employeeResponse] = await Promise.all([
-          axios.get<SalaryPagedResponse>(`${BASE_URL}/api/salary?page=1&size=1000`, {
+        const employeeResponse = await axios.get<EmployeePagedResponse>(
+          `${BASE_URL}/api/employees?page=1&size=1000`,
+          {
             headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get<EmployeePagedResponse>(`${BASE_URL}/api/employees?page=1&size=1000`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-        ]);
-
-        const salaryItems =
-          salaryResponse.data?.items ?? salaryResponse.data?.Items ?? [];
+          }
+        );
         const employeeItems =
           employeeResponse.data?.items ?? employeeResponse.data?.Items ?? [];
+        const savedAttendanceMap = getSavedAttendanceMap();
 
         const employeeMap = new Map<
           number,
@@ -123,42 +121,43 @@ function Main() {
         };
 
         const aggregatedMap = new Map<string, AttendanceRow>();
+        const sortedDates = Object.keys(savedAttendanceMap).sort();
 
-        salaryItems.forEach((item, index) => {
-          const employeeId = Number(item.employeeId ?? item.EmployeeId ?? 0);
-          const employeeInfo = employeeMap.get(employeeId);
-
-          const rawDate = item.createdDate ?? item.CreatedDate;
-          const displayMonth = rawDate
-            ? new Date(rawDate).toISOString().slice(0, 7)
+        sortedDates.forEach((dateKey, dateIndex) => {
+          const savedDay = savedAttendanceMap[dateKey];
+          const month = /^\d{4}-\d{2}-\d{2}$/.test(dateKey)
+            ? dateKey.slice(0, 7)
             : "";
-          if (!displayMonth) return;
+          if (!month) return;
 
-          const key = `${employeeId}-${displayMonth}`;
-          const existing = aggregatedMap.get(key);
-          const currentName = String(
-            item.employeeName ?? item.EmployeeName ?? employeeInfo?.name ?? ""
-          );
-          const currentType = toTypeLabel(item.type ?? item.Type ?? employeeInfo?.type);
+          (savedDay?.rows ?? []).forEach((entry) => {
+            const employeeId = Number(entry.id);
+            if (!Number.isFinite(employeeId) || employeeId <= 0) return;
 
-          if (existing) {
-            existing.Attendance += Number(item.attendance ?? item.Attendance ?? 0);
-            existing.ExtraHours += Number(item.extraHours ?? item.ExtraHours ?? 0);
-            existing.TotalLate += Number(item.totalLate ?? item.TotalLate ?? 0);
-            existing.HalfDay += Number(item.halfDay ?? item.HalfDay ?? 0);
-            return;
-          }
+            const employeeInfo = employeeMap.get(employeeId);
+            const key = `${employeeId}-${month}`;
+            const existing = aggregatedMap.get(key);
 
-          aggregatedMap.set(key, {
-            id: Number(item.id ?? item.Id ?? index + 1),
-            EmployeeId: employeeId,
-            Name: currentName,
-            Type: currentType,
-            Month: displayMonth,
-            Attendance: Number(item.attendance ?? item.Attendance ?? 0),
-            ExtraHours: Number(item.extraHours ?? item.ExtraHours ?? 0),
-            TotalLate: Number(item.totalLate ?? item.TotalLate ?? 0),
-            HalfDay: Number(item.halfDay ?? item.HalfDay ?? 0),
+            const attendanceIncrement = entry.status === "Present" ? 1 : 0;
+            const halfDayIncrement = entry.status === "Half Day" ? 1 : 0;
+
+            if (existing) {
+              existing.Attendance += attendanceIncrement;
+              existing.HalfDay += halfDayIncrement;
+              return;
+            }
+
+            aggregatedMap.set(key, {
+              id: `att-${employeeId}-${month}-${dateIndex}`,
+              EmployeeId: employeeId,
+              Name: employeeInfo?.name ?? `Employee ${employeeId}`,
+              Type: toTypeLabel(employeeInfo?.type),
+              Month: month,
+              Attendance: attendanceIncrement,
+              ExtraHours: 0,
+              TotalLate: 0,
+              HalfDay: halfDayIncrement,
+            });
           });
         });
 

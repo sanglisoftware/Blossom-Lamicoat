@@ -23,6 +23,19 @@ interface CategoryImageModalData {
 }
 
 function Main() {
+    type EmployeeRowData = {
+        id: number;
+        firstName?: string;
+        middleName?: string;
+        lastName?: string;
+        mobile?: string;
+        dailySalary?: number | string | null;
+        roleId?: number | string | null;
+        username?: string;
+        activeStatus?: number | string | null;
+        type?: number | string | null;
+    };
+
     const token = localStorage.getItem("token");
     const [addNewEmployeeModalPreview, setaddNewEmployeeModalPreview] = useState(false);
     const [editEmployeeModalPreview, setEditEmployeeModalPreview] = useState(false);
@@ -40,6 +53,7 @@ function Main() {
     const filterValueRef = useRef(filterValue);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     const [editingEmployeeId, setEditingEmployeeId] = useState<number | null>(null);
+    const [editingEmployeeData, setEditingEmployeeData] = useState<EmployeeRowData | null>(null);
 
     const [notification, setNotification] = useState<{
         message: string;
@@ -225,6 +239,22 @@ function Main() {
                        `;
                         },
                     },
+                    {
+                        title: "Daily Salary",
+                        minWidth: 150,
+                        responsive: 0,
+                        field: "dailySalary",
+                        vertAlign: "middle",
+                        print: false,
+                        download: false,
+                        formatter(cell) {
+                            const response: any = cell.getData();
+                            const amount = Number(response.dailySalary ?? 0);
+                            return `<div>
+                        <div class="font-medium whitespace-nowrap">${Number.isFinite(amount) ? amount.toFixed(2) : "0.00"}</div>
+                        </div>`;
+                        },
+                    },
 
 
                     {
@@ -275,6 +305,7 @@ function Main() {
                                     onClick: () => {
                                         const rowData = cell.getRow().getData();
                                         setEditingEmployeeId(rowData.id);
+                                        setEditingEmployeeData(rowData);
                                         setEditEmployeeModalPreview(true);
 
                                     },
@@ -677,7 +708,7 @@ function Main() {
             {/* END:  Add new Collection Modal Content */}
             {/* BEGIN: Edit Collection Modal Content */}
             <EditEmpoyeeModal open={editEmployeeModalPreview} onClose={() => setEditEmployeeModalPreview(false)} onSuccess={refreshTableData}
-                employeeId={editingEmployeeId} />
+                employeeId={editingEmployeeId} initialEmployee={editingEmployeeData} />
             {/* END:  Edit Collection Modal Content */}
         </>
     );

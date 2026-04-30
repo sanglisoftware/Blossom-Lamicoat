@@ -1,38 +1,28 @@
 import "@/assets/css/vendors/tom-select.css";
-import { createRef, useEffect } from "react";
-import { setValue, init, updateValue } from "./tom-select";
+import clsx from "clsx";
+import TomSelectPlugin from "tom-select";
 import {
-  TomSettings,
+  Children,
+  isValidElement,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
+import {
   RecursivePartial,
   TomInput,
+  TomSettings,
 } from "tom-select/src/types/index";
-import TomSelectPlugin from "tom-select";
-import { useRef, useMemo } from "react";
-import clsx from "clsx";
 
 export interface TomSelectElement
   extends HTMLSelectElement,
-  Omit<TomInput, keyof HTMLSelectElement | "tomselect"> {
+    Omit<TomInput, keyof HTMLSelectElement | "tomselect"> {
   TomSelect: TomSelectPlugin;
-}
-
-export interface TomSelectProps<T extends string | string[]>
-  extends React.PropsWithChildren,
-  Omit<React.ComponentPropsWithoutRef<"select">, "onChange"> {
-  value: T;
-  onOptionAdd?: (value: string) => void;
-  onChange: (e: {
-    target: {
-      value: T;
-    };
-  }) => void;
-  options?: RecursivePartial<TomSettings>;
-  getRef?: (el: TomSelectElement) => void;
 }
 
 export interface TomSelectProps<T extends string | string[] = string | string[]>
   extends React.PropsWithChildren,
-  Omit<React.ComponentPropsWithoutRef<"select">, "onChange"> {
+    Omit<React.ComponentPropsWithoutRef<"select">, "onChange"> {
   value: T;
   onOptionAdd?: (value: string) => void;
   onChange: (e: {
@@ -48,122 +38,134 @@ function TomSelect<T extends string | string[]>({
   className = "",
   options = {},
   value,
-  onOptionAdd = () => { },
-  onChange = () => { },
-  getRef = () => { },
+  onOptionAdd = () => {},
+  onChange = () => {},
+  getRef = () => {},
   children,
   ...computedProps
 }: TomSelectProps<T>) {
-  const props = {
-    className: className,
-    options: options,
-    value: value,
-    onOptionAdd: onOptionAdd,
-    onChange: onChange,
-    getRef: getRef,
-  };
-  const initialRender = useRef(true);
-  const tomSelectRef = createRef<TomSelectElement>();
+  const selectRef = useRef<TomSelectElement | null>(null);
+  const instanceRef = useRef<TomSelectPlugin | null>(null);
 
-  // Compute all default options
+  const childrenSignature = useMemo(() => {
+    return Children.toArray(children)
+      .map((child) => {
+        if (!isValidElement(child)) {
+          return String(child ?? "");
+        }
+
+        return `${child.props.value ?? ""}:${Children.toArray(child.props.children).join("")}`;
+      })
+      .join("|");
+  }, [children]);
+
   const computedOptions = useMemo(() => {
-    let options: TomSelectProps<T>["options"] = {
-      ...props.options,
+    let mergedOptions: RecursivePartial<TomSettings> = {
+      ...options,
       plugins: {
         dropdown_input: {},
-        ...props.options.plugins,
+        ...options.plugins,
       },
     };
 
-    if (Array.isArray(props.value)) {
-      options = {
+    if (Array.isArray(value)) {
+      mergedOptions = {
         persist: false,
         create: true,
-        onDelete: function (values: string[]) {
+        onDelete(values: string[]) {
           return confirm(
             values.length > 1
-              ? "Are you sure you want to remove these " +
-              values.length +
-              " items?"
-              : 'Are you sure you want to remove "' + values[0] + '"?'
+              ? `Are you sure you want to remove these ${values.length} items?`
+              : `Are you sure you want to remove "${values[0]}"?`
           );
         },
-        ...options,
+        ...mergedOptions,
         plugins: {
           remove_button: {
             title: "Remove this item",
           },
-          ...options.plugins,
+          ...mergedOptions.plugins,
         },
       };
     }
 
-    return options;
-  }, [props.options]);
+    return mergedOptions;
+  }, [options, value]);
 
   useEffect(() => {
-    if (tomSelectRef.current) {
-      props.getRef(tomSelectRef.current);
+    const el = selectRef.current;
+    if (!el) return;
 
-      if (initialRender.current) {
-        // Unique attribute
-        tomSelectRef.current.setAttribute(
-          "data-id",
-          "_" + Math.random().toString(36).substr(2, 9)
-        );
+    getRef(el);
 
-        // Clone the select element to prevent tom select remove the original element
-        const clonedEl = tomSelectRef.current.cloneNode(
-          true
-        ) as TomSelectElement;
+    const instance = new TomSelectPlugin(el, {
+      ...computedOptions,
+      onOptionAdd: Array.isArray(value)
+        ? (createdValue: string | number) => {
+            onOptionAdd(String(createdValue));
+          }
+        : computedOptions.onOptionAdd,
+    });
 
-        // Save initial classnames
-        const classNames = tomSelectRef.current?.getAttribute("class");
-        classNames && clonedEl.setAttribute("data-initial-class", classNames);
+    instance.on("change", (selectedItems: string[] | string) => {
+      onChange({
+        target: {
+          value: Array.isArray(selectedItems)
+            ? ([...selectedItems] as T)
+            : (selectedItems as T),
+        },
+      });
+    });
 
-        // Hide original element
-        tomSelectRef.current?.parentNode &&
-          tomSelectRef.current?.parentNode.appendChild(clonedEl);
-        tomSelectRef.current.setAttribute("hidden", "true");
+    instanceRef.current = instance;
 
-        // Initialize tom select
-        setValue(clonedEl, props);
-        init(tomSelectRef.current, clonedEl, props, computedOptions);
-
-        initialRender.current = false;
-      } else {
-        const clonedEl = document.querySelectorAll(
-          `[data-id='${tomSelectRef.current.getAttribute(
-            "data-id"
-          )}'][data-initial-class]`
-        )[0] as TomSelectElement;
-        const value = props.value;
-        updateValue(
-          tomSelectRef.current,
-          clonedEl,
-          value,
-          props,
-          computedOptions
-        );
-      }
+    if (Array.isArray(value)) {
+      instance.setValue(value, true);
+    } else {
+      instance.setValue(value ?? "", true);
     }
-  }, [tomSelectRef, props.value, props.className]);
+
+    return () => {
+      instance.off("change");
+      instance.destroy();
+      instanceRef.current = null;
+    };
+  }, [computedOptions, childrenSignature]);
+
+  useEffect(() => {
+    const instance = instanceRef.current;
+    if (!instance) return;
+
+    const currentValue = instance.getValue();
+    const nextValue = Array.isArray(value) ? value : value ?? "";
+
+    if (Array.isArray(nextValue)) {
+      if (JSON.stringify(currentValue) !== JSON.stringify(nextValue)) {
+        instance.setValue(nextValue, true);
+      }
+      return;
+    }
+
+    if (currentValue !== nextValue) {
+      instance.setValue(nextValue, true);
+    }
+  }, [value]);
 
   return (
     <select
       {...computedProps}
-      ref={tomSelectRef}
-      value={props.value}
-      onChange={(e) => {
-        if (props.onChange) {
-          props.onChange({
-            target: {
-              value: e.target.value as T,
-            },
-          });
-        }
+      ref={(el) => {
+        selectRef.current = el;
       }}
-      className={clsx(["tom-select", props.className])}
+      value={value}
+      onChange={(e) => {
+        onChange({
+          target: {
+            value: e.target.value as T,
+          },
+        });
+      }}
+      className={clsx(["tom-select", className])}
     >
       {children}
     </select>

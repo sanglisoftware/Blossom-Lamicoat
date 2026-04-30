@@ -17,6 +17,17 @@ interface EditEmployeeModalProps {
     onClose: () => void;
     onSuccess?: () => void;
     employeeId: number | null;
+    initialEmployee?: {
+        firstName?: string;
+        middleName?: string;
+        lastName?: string;
+        mobile?: string;
+        dailySalary?: number | string | null;
+        roleId?: number | string | null;
+        username?: string;
+        activeStatus?: number | string | null;
+        type?: number | string | null;
+    } | null;
 }
 
 //for role dropdown
@@ -25,7 +36,21 @@ interface RoleOptions {
     roleValue: string;
 }
 
-const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onSuccess, employeeId }) => {
+const emptyFormData = {
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    mobileNo: "",
+    dailySalary: "",
+    role: "",
+    userName: "",
+    password: "",
+    confirmPassword: "",
+    type: "",
+    isActive: true
+};
+
+const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onSuccess, employeeId, initialEmployee }) => {
 
     const token = localStorage.getItem("token");
     //Success Modal config
@@ -41,7 +66,38 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
 
     // Load employee data when modal opens or collectionId changes
     useEffect(() => {
+        if (open && initialEmployee) {
+            const initialTypeValue = initialEmployee.type ?? "";
+            const initialActiveStatus = initialEmployee.activeStatus ?? 1;
+
+            setFormData((prev) => ({
+                ...prev,
+                firstName: initialEmployee.firstName ?? "",
+                middleName: initialEmployee.middleName ?? "",
+                lastName: initialEmployee.lastName ?? "",
+                mobileNo: initialEmployee.mobile ?? "",
+                dailySalary: initialEmployee.dailySalary?.toString() ?? "",
+                role: initialEmployee.roleId?.toString() ?? "",
+                userName: initialEmployee.username ?? "",
+                isActive: Number(initialActiveStatus) === 1,
+                type:
+                    Number(initialTypeValue) === 0
+                        ? "Staff"
+                        : Number(initialTypeValue) === 1
+                            ? "Worker"
+                            : "",
+            }));
+        }
+    }, [open, initialEmployee]);
+
+    useEffect(() => {
         const fetchEmployeeData = async () => {
+            if (!open) {
+                setFormData(emptyFormData);
+                setFormErrors({});
+                return;
+            }
+
             if (open && employeeId) {
                 try {
                     const response = await axios.get(
@@ -54,21 +110,34 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                     );
 
                     const employee = response.data;
-                    setFormData({
-                        firstName: employee.firstName,
-                        middleName: employee.middleName,
-                        lastName: employee.lastName,
-                        mobileNo: employee.mobile,
-                        role: employee.roleId.toString(),
-                        userName: employee.username,
-                        password: employee.password,
-                        confirmPassword: employee.password,
-                        isActive: employee.activeStatus === 1,
-                        type: employee.type === 0 ? "Staff" : employee.type === 1 ? "Worker" : "",
+                    const firstName = employee.firstName ?? employee.FirstName ?? "";
+                    const middleName = employee.middleName ?? employee.MiddleName ?? "";
+                    const lastName = employee.lastName ?? employee.LastName ?? "";
+                    const mobile = employee.mobile ?? employee.Mobile ?? "";
+                    const dailySalary = employee.dailySalary ?? employee.DailySalary ?? "";
+                    const roleId = employee.roleId ?? employee.RoleId ?? "";
+                    const username = employee.username ?? employee.Username ?? "";
+                    const password = employee.password ?? employee.Password ?? "";
+                    const activeStatus = employee.activeStatus ?? employee.ActiveStatus ?? 1;
+                    const typeValue = employee.type ?? employee.Type ?? "";
 
+                    setFormData({
+                        firstName,
+                        middleName,
+                        lastName,
+                        mobileNo: mobile,
+                        dailySalary: dailySalary?.toString() ?? "",
+                        role: roleId?.toString() ?? "",
+                        userName: username,
+                        password,
+                        confirmPassword: password,
+                        isActive: Number(activeStatus) === 1,
+                        type: Number(typeValue) === 0 ? "Staff" : Number(typeValue) === 1 ? "Worker" : "",
                     });
+                    setFormErrors({});
                 } catch (error) {
                     console.error("Error fetching collection:", error);
+                    setFormData(emptyFormData);
                 } finally {
                 }
             }
@@ -97,18 +166,7 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
     }, [token]);
 
     //Collection Modal (useState)
-    const [formData, setFormData] = useState({
-        firstName: "",
-        middleName: "",
-        lastName: "",
-        mobileNo: "",
-        role: "",
-        userName: "",
-        password: "",
-        confirmPassword: "",
-        type: "",
-        isActive: true
-    })
+    const [formData, setFormData] = useState(emptyFormData)
 
     //Validation Errors
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -122,6 +180,14 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
         if (!formData.lastName) errors.lastName = "Last name is required.";
         if (!formData.userName) errors.userName = "User Name is required.";
         if (!formData.role) errors.role = "Role is required.";
+        if (!formData.type) errors.type = "Type is required.";
+
+        const dailySalary = formData.dailySalary.trim();
+        if (!dailySalary) {
+            errors.dailySalary = "Daily salary is required.";
+        } else if (Number.isNaN(Number(dailySalary)) || Number(dailySalary) <= 0) {
+            errors.dailySalary = "Daily salary must be greater than 0.";
+        }
 
         //Mobile Number Validation
         const mobile = formData.mobileNo.trim();
@@ -165,6 +231,7 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
             middleName: formData.middleName,
             lastName: formData.lastName,
             mobile: formData.mobileNo,
+            dailySalary: Number(formData.dailySalary),
             roleId: formData.role,
             username: formData.userName,
             activeStatus: formData.isActive ? 1 : 0,
@@ -303,6 +370,25 @@ const EditEmpoyeeModal: React.FC<EditEmployeeModalProps> = ({ open, onClose, onS
                                 }}
                             />
                             {formErrors.mobileNo && <p className="text-red-500 text-sm">{formErrors.mobileNo}</p>}
+                        </div>
+                        <div className="col-span-12 sm:col-span-4">
+                            <FormLabel htmlFor="dailySalary">Daily Salary</FormLabel>
+                            <FormInput
+                                id="dailySalary"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Daily Salary"
+                                value={formData.dailySalary}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setFormData({ ...formData, dailySalary: value })
+                                    if (value.trim()) {
+                                        setFormErrors((prev) => ({ ...prev, dailySalary: "" }));
+                                    }
+                                }}
+                            />
+                            {formErrors.dailySalary && <p className="text-red-500 text-sm">{formErrors.dailySalary}</p>}
                         </div>
                         <div className="col-span-12 sm:col-span-4">
                             <FormLabel htmlFor="role">Select Designation</FormLabel>
