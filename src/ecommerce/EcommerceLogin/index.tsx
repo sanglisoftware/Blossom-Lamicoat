@@ -172,7 +172,13 @@ function Main() {
                   A few more clicks to sign in to your account. Manage all your
                   e-commerce accounts in one place
                 </div>
-                <div className="mt-8 intro-x">
+                <form
+                  className="mt-8 intro-x"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    login();
+                  }}
+                >
                   <FormInput
                     type="text"
                     className="block px-4 py-3 intro-x min-w-full xl:min-w-[350px]"
@@ -180,13 +186,15 @@ function Main() {
                     value={formData.username}
                     onChange={(e) => {
                       const value = e.target.value;
-                      setFormData({ ...formData, username: e.target.value })
+                      setFormData({ ...formData, username: e.target.value });
                       if (value.trim()) {
                         setFormErrors((prev) => ({ ...prev, username: "" }));
                       }
                     }}
                   />
-                  {formErrors.username && <p className="text-red-500 text-sm">{formErrors.username}</p>}
+                  {formErrors.username && (
+                    <p className="text-sm text-red-500">{formErrors.username}</p>
+                  )}
                   <FormInput
                     type="password"
                     className="block px-4 py-3 mt-4 intro-x min-w-full xl:min-w-[350px]"
@@ -194,45 +202,47 @@ function Main() {
                     value={formData.password}
                     onChange={(e) => {
                       const value = e.target.value;
-                      setFormData({ ...formData, password: e.target.value })
+                      setFormData({ ...formData, password: e.target.value });
                       if (value.trim()) {
                         setFormErrors((prev) => ({ ...prev, password: "" }));
                       }
                     }}
                   />
-                  {formErrors.password && <p className="text-red-500 text-sm">{formErrors.password}</p>}
-                </div>
-                <div className="flex mt-4 text-xs intro-x text-slate-600 dark:text-slate-500 sm:text-sm">
-                  <div className="flex items-center mr-auto">
-                    <FormCheck.Input
-                      id="remember-me"
-                      type="checkbox"
-                      className="mr-2 border"
-                    />
-                    <label
-                      className="cursor-pointer select-none"
-                      htmlFor="remember-me"
-                    >
-                      Remember me
-                    </label>
+                  {formErrors.password && (
+                    <p className="text-sm text-red-500">{formErrors.password}</p>
+                  )}
+                  <div className="flex mt-4 text-xs intro-x text-slate-600 dark:text-slate-500 sm:text-sm">
+                    <div className="flex items-center mr-auto">
+                      <FormCheck.Input
+                        id="remember-me"
+                        type="checkbox"
+                        className="mr-2 border"
+                      />
+                      <label
+                        className="cursor-pointer select-none"
+                        htmlFor="remember-me"
+                      >
+                        Remember me
+                      </label>
+                    </div>
+                    {/* <a href="">Forgot Password?</a> */}
                   </div>
-                  {/* <a href="">Forgot Password?</a> */}
-                </div>
-                <div className="mt-5 text-center intro-x xl:mt-8 xl:text-left">
-                  <Button
-                    variant="primary"
-                    className="w-full px-4 py-3 align-top xl:w-32 xl:mr-3"
-                    onClick={() => login()}
-                  >
-                    Login
-                  </Button>
-                  {/* <Button
+                  <div className="mt-5 text-center intro-x xl:mt-8 xl:text-left">
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      className="w-full px-4 py-3 align-top xl:w-32 xl:mr-3"
+                    >
+                      Login
+                    </Button>
+                    {/* <Button
                     variant="outline-secondary"
                     className="w-full px-4 py-3 mt-3 align-top xl:w-32 xl:mt-0"
                   >
                     Register
                   </Button> */}
-                </div>
+                  </div>
+                </form>
               </div>
             </div>
             {/* END: Login Form */}
