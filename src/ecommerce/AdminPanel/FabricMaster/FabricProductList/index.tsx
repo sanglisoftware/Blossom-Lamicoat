@@ -17,14 +17,31 @@ type FabricProductRow = {
   comments?: string;
 };
 
+type FabricProductApiRow = {
+  id?: number;
+  Id?: number;
+  name?: string;
+  Name?: string;
+  comments?: string;
+  Comments?: string;
+};
+
 const getFabricProductItems = async (token: string | null): Promise<FabricProductRow[]> => {
   const headers = { Authorization: token ? `Bearer ${token}` : "" };
+
+  const normalizeItems = (items: FabricProductApiRow[]): FabricProductRow[] =>
+    items.map((item) => ({
+      id: Number(item.id ?? item.Id ?? 0),
+      name: String(item.name ?? item.Name ?? ""),
+      comments: String(item.comments ?? item.Comments ?? ""),
+    }));
 
   try {
     const response = await axios.get(`${BASE_URL}/api/fproductlist?page=1&size=1000`, {
       headers,
     });
-    return response?.data?.items ?? response?.data?.Items ?? response?.data ?? [];
+    const items = response?.data?.items ?? response?.data?.Items ?? response?.data ?? [];
+    return normalizeItems(items as FabricProductApiRow[]);
   } catch (error) {
     if (!axios.isAxiosError(error) || error.response?.status !== 500) {
       throw error;
@@ -33,12 +50,13 @@ const getFabricProductItems = async (token: string | null): Promise<FabricProduc
     const fallbackResponse = await axios.get(`${BASE_URL}/api/fproductlist`, {
       headers,
     });
-    return (
+    const items =
       fallbackResponse?.data?.items ??
       fallbackResponse?.data?.Items ??
       fallbackResponse?.data ??
-      []
-    );
+      [];
+
+    return normalizeItems(items as FabricProductApiRow[]);
   }
 };
 
@@ -55,7 +73,7 @@ function Main() {
 
   const [addFproductModal, setAddFproductModal] = useState(false);
   const [editFproductModal, setEditFproductModal] = useState(false);
-  const [editingFproduct, setEditingFproduct] = useState<any>(null);
+  const [editingFproduct, setEditingFproduct] = useState<FabricProductRow | null>(null);
   const [editingFproductId, setEditingFproductId] = useState<number | null>(null);
 
 const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
@@ -90,11 +108,18 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
         tabulator.current.replaceData(items);
         applyGlobalFilter(filterValueRef.current);
       }
-    } catch (error) {
+    } catch (error: any) {
+      const errorDetails =
+        error.response?.data?.detail ||
+        error.response?.data?.title ||
+        error.response?.data?.message ||
+        error.message;
+
       console.error(
         "Failed to fetch fabric product list from both paginated and fallback endpoints:",
-        error
+        error.response?.data || error
       );
+      console.error("Fabric product list error details:", errorDetails);
       setTableData([]);
       if (tabulator.current && tableReadyRef.current) {
         tabulator.current.replaceData([]);
@@ -148,6 +173,7 @@ const [deleteConfirmationModal, setDeleteConfirmationModal] = useState(false);
                   "bg-green-100 hover:bg-green-200 text-green-800",
                 onClick: () => {
                   setEditingFproductId(rowData.id);
+                  setEditingFproduct(rowData);
                   setEditFproductModal(true);
                 },
               },
@@ -235,6 +261,7 @@ const handleFilterChange = (value: string) => {
     };
     window.addEventListener("resize", handleResize);
     return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
       window.removeEventListener("resize", handleResize);
       tableReadyRef.current = false;
       tabulator.current?.destroy();
@@ -285,8 +312,13 @@ const handleFilterChange = (value: string) => {
 
       <EditProductList
         open={editFproductModal}
-      fproductId={editingFproductId}
-        onClose={() => setEditFproductModal(false)}
+        fproductId={editingFproductId}
+        initialData={editingFproduct}
+        onClose={() => {
+          setEditFproductModal(false);
+          setEditingFproductId(null);
+          setEditingFproduct(null);
+        }}
         onSuccess={refreshTable}
       />
       <Dialog

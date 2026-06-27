@@ -46,6 +46,8 @@ function TomSelect<T extends string | string[]>({
 }: TomSelectProps<T>) {
   const selectRef = useRef<TomSelectElement | null>(null);
   const instanceRef = useRef<TomSelectPlugin | null>(null);
+  const optionsSignature = useMemo(() => JSON.stringify(options ?? {}), [options]);
+  const isMultiValue = Array.isArray(value);
 
   const childrenSignature = useMemo(() => {
     return Children.toArray(children)
@@ -68,7 +70,7 @@ function TomSelect<T extends string | string[]>({
       },
     };
 
-    if (Array.isArray(value)) {
+    if (isMultiValue) {
       mergedOptions = {
         persist: false,
         create: true,
@@ -90,7 +92,7 @@ function TomSelect<T extends string | string[]>({
     }
 
     return mergedOptions;
-  }, [options, value]);
+  }, [optionsSignature, isMultiValue]);
 
   useEffect(() => {
     const el = selectRef.current;

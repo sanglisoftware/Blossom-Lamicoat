@@ -27,6 +27,18 @@ interface FabricOptions {
   isActive: number;
 }
 
+interface ColourOptions {
+  id: number;
+  name: string;
+  isActive: number;
+}
+
+interface FGramageOptions {
+  id: number;
+  grm: string;
+  isActive: number;
+}
+
 const AddInwardReport: React.FC<AddInwardReportProps> = ({
   open,
   onClose,
@@ -37,17 +49,24 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
   const [formData, setFormData] = useState({
     supplierId: "",
     fabricId: "",
+    fGramageId: "",
+    colourId: "",
     BatchNo: "",
     QTYMTR: "",
    Comments:"",
   });
   const [suppliers, setSuppliers] = useState<SupplierOptions[]>([]);
   const [Fabric, setFabric] = useState<FabricOptions[]>([]);
+  const [colours, setColours] = useState<ColourOptions[]>([]);
+  const [fGramages, setFGramages] = useState<FGramageOptions[]>([]);
 
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
   const [fabricLoaded, setFabricLoaded] = useState(false);
+  const [coloursLoaded, setColoursLoaded] = useState(false);
+  const [fGramagesLoaded, setFGramagesLoaded] = useState(false);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successModalConfig, setSuccessModalConfig] =
     useState<SuccessModalConfig>({
@@ -95,15 +114,59 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
     fetchFabric();
   }, [open, token]);
 
+  useEffect(() => {
+    if (!open) return;
+    const fetchColours = async () => {
+      try {
+        setColoursLoaded(false);
+        const response = await axios.get(`${BASE_URL}/api/colour`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setColours(response.data.items || []);
+        setColoursLoaded(true);
+      } catch (error) {
+        console.error("Error fetching colours:", error);
+      }
+    };
+    fetchColours();
+  }, [open, token]);
+
+  useEffect(() => {
+    if (!open) return;
+    const fetchFGramages = async () => {
+      try {
+        setFGramagesLoaded(false);
+        const response = await axios.get(`${BASE_URL}/api/fgramage`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setFGramages(response.data.items || []);
+        setFGramagesLoaded(true);
+      } catch (error) {
+        console.error("Error fetching fabric gramages:", error);
+      }
+    };
+    fetchFGramages();
+  }, [open, token]);
+
+  useEffect(() => {
+    if (!open) {
+      clearFormData();
+      setAttachedFile(null);
+      setFormErrors({});
+    }
+  }, [open]);
+
 
 
   const clearFormData = () =>
     setFormData({
       supplierId: "",
       fabricId: "",
+      fGramageId: "",
+      colourId: "",
       BatchNo: "",
       QTYMTR: "",
-        Comments:"",
+      Comments:"",
     });
 
   // Memoized active chemicals/suppliers
@@ -115,6 +178,14 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
     () => suppliers.filter((s) => s.isActive === 1),
     [suppliers]
   );
+  const activeColours = useMemo(
+    () => colours.filter((c) => c.isActive === 1),
+    [colours]
+  );
+  const activeFGramages = useMemo(
+    () => fGramages.filter((g) => g.isActive === 1),
+    [fGramages]
+  );
 
   const handleFabricChange = (value: string | number) => {
     setFormData((prev) => ({ ...prev, fabricId: String(value) }));
@@ -124,10 +195,20 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
     setFormData((prev) => ({ ...prev, supplierId: String(value) }));
   };
 
+  const handleColourChange = (value: string | number) => {
+    setFormData((prev) => ({ ...prev, colourId: String(value) }));
+  };
+
+  const handleFGramageChange = (value: string | number) => {
+    setFormData((prev) => ({ ...prev, fGramageId: String(value) }));
+  };
+
   const handleSubmit = async () => {
     const errors: Record<string, string> = {};
     if (!formData.supplierId) errors.supplierId = "Supplier is required";
     if (!formData.fabricId) errors.fabricId = "Fabric is required";
+    if (!formData.fGramageId) errors.fGramageId = "GRM is required";
+    if (!formData.colourId) errors.colourId = "Colour is required";
     if (!formData.BatchNo) errors.BatchNo = "BatchNo is required";
     if (!formData.QTYMTR) errors.QTYMTR = "QTY is required";
     if (!formData.Comments) errors.Comments = "Comments is required";
@@ -136,21 +217,49 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
     if (Object.keys(errors).length > 0) return;
 
     try {
-      const payload = {
+      const jsonPayload = {
         supplierMasterId: Number(formData.supplierId),
         fabricMasterId: Number(formData.fabricId),
-        batchNo: formData.BatchNo,
-        qty: Number(formData.QTYMTR),
+        fGramageMasterId: Number(formData.fGramageId),
+        colourMasterId: Number(formData.colourId),
+        batchNo: Number(formData.BatchNo),
+        qtyMTR: Number(formData.QTYMTR),
         comments: formData.Comments,
+        attachedFile: "",
         isActive: 1,
       };
 
-      const response = await axios.post(`${BASE_URL}/api/fabricinward`, payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = attachedFile
+        ? await axios.post(
+            `${BASE_URL}/api/fabricinward`,
+            (() => {
+              const payload = new FormData();
+              payload.append("supplierMasterId", String(Number(formData.supplierId)));
+              payload.append("fabricMasterId", String(Number(formData.fabricId)));
+              payload.append("fGramageMasterId", String(Number(formData.fGramageId)));
+              payload.append("colourMasterId", String(Number(formData.colourId)));
+              payload.append("batchNo", formData.BatchNo);
+              payload.append("qtyMTR", String(Number(formData.QTYMTR)));
+              payload.append("comments", formData.Comments);
+              payload.append("isActive", "1");
+              payload.append("attachedFile", attachedFile);
+              return payload;
+            })(),
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          )
+        : await axios.post(`${BASE_URL}/api/fabricinward`, jsonPayload, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
       if (response.status === 200 || response.status === 201) {
         clearFormData();
+        setAttachedFile(null);
         setFormErrors({});
         onClose();
 
@@ -167,7 +276,12 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
       }
     } catch (error: any) {
       console.error("Inward submit error:", error);
-      alert(error.response?.data?.detail || "Something went wrong");
+      alert(
+        error.response?.data?.detail ||
+        error.response?.data?.title ||
+        error.response?.data?.message ||
+        "Something went wrong"
+      );
     }
   };
 
@@ -225,7 +339,51 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
               ) : (
                 <p className="text-gray-500 text-sm">Loading fabrics...</p>
               )}
-              {formErrors.fabricId && <p className="text-red-500 text-sm">{formErrors.chemicalId}</p>}
+              {formErrors.fabricId && <p className="text-red-500 text-sm">{formErrors.fabricId}</p>}
+            </div>
+
+            <div>
+              <FormLabel>GRM</FormLabel>
+              {fGramagesLoaded ? (
+                <TomSelect
+                  value={formData.fGramageId}
+                  onChange={(e) => handleFGramageChange(e.target.value)}
+                  options={{ placeholder: "Select GRM", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select GRM</option>
+                  {activeFGramages.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.grm}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading GRM...</p>
+              )}
+              {formErrors.fGramageId && <p className="text-red-500 text-sm">{formErrors.fGramageId}</p>}
+            </div>
+
+            <div>
+              <FormLabel>Colour</FormLabel>
+              {coloursLoaded ? (
+                <TomSelect
+                  value={formData.colourId}
+                  onChange={(e) => handleColourChange(e.target.value)}
+                  options={{ placeholder: "Select Colour", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Colour</option>
+                  {activeColours.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading colours...</p>
+              )}
+              {formErrors.colourId && <p className="text-red-500 text-sm">{formErrors.colourId}</p>}
             </div>
 
             {/* QTY */}
@@ -276,6 +434,22 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
                 }}
               />
               {formErrors.Comments && <p className="text-red-500 text-sm">{formErrors.Comments}</p>}
+            </div>
+
+            <div>
+              <FormLabel>Attached File</FormLabel>
+              <FormInput
+                type="file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setAttachedFile(file);
+                }}
+              />
+              {attachedFile && (
+                <p className="mt-1 text-sm text-slate-600">
+                  Selected file: {attachedFile.name}
+                </p>
+              )}
             </div>
           </Dialog.Description>
 

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Button from "@/components/Base/Button";
-import { FormInput, FormLabel } from "@/components/Base/Form";
-import TomSelect from "@/components/Base/TomSelect";
+import { FormInput, FormLabel, FormSelect } from "@/components/Base/Form";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
 import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
@@ -19,10 +18,14 @@ interface EmployeeApiItem {
   Id?: number;
   firstName?: string;
   FirstName?: string;
+  middleName?: string;
+  MiddleName?: string;
   lastName?: string;
   LastName?: string;
   type?: number | string | null;
   Type?: number | string | null;
+  isActive?: number | boolean | null;
+  IsActive?: number | boolean | null;
 }
 
 type CreditRecord = {
@@ -227,24 +230,37 @@ const Main: React.FC = () => {
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}/api/employees`, {
+        const response = await axios.get(`${BASE_URL}/api/employees?page=1&size=1000`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (Array.isArray(response.data?.items)) {
-          const normalizedEmployees = (response.data.items as EmployeeApiItem[])
-            .map((emp) => ({
-              id: Number(emp.id ?? emp.Id),
-              firstName: emp.firstName ?? emp.FirstName ?? "",
-              lastName: emp.lastName ?? emp.LastName ?? "",
-              type: emp.type ?? emp.Type ?? null,
-            }))
-            .filter((emp) => Number.isFinite(emp.id) && emp.id > 0);
+        const items = response.data?.items ?? response.data?.Items ?? response.data ?? [];
+        const normalizedEmployees = (Array.isArray(items) ? items : [])
+          .map((emp: EmployeeApiItem) => ({
+            id: Number(emp.id ?? emp.Id),
+            firstName: emp.firstName ?? emp.FirstName ?? "",
+            lastName: [
+              emp.middleName ?? emp.MiddleName ?? "",
+              emp.lastName ?? emp.LastName ?? "",
+            ]
+              .filter((value) => value && value.trim().length > 0)
+              .join(" ")
+              .trim(),
+            type: emp.type ?? emp.Type ?? null,
+            isActive: emp.isActive ?? emp.IsActive ?? 1,
+          }))
+          .filter(
+            (emp) =>
+              Number.isFinite(emp.id) &&
+              emp.id > 0 &&
+              (emp.isActive === 1 || emp.isActive === true)
+          )
+          .map(({ isActive, ...employee }) => employee);
 
-          setEmployeeList(normalizedEmployees);
-        }
+        setEmployeeList(normalizedEmployees);
       } catch (error) {
         console.error("Error fetching employees:", error);
+        setEmployeeList([]);
       }
     };
 
@@ -398,13 +414,9 @@ const Main: React.FC = () => {
         <form className="box p-5 space-y-4 w-full max-w-xl" onSubmit={handleSubmit}>
           <div>
             <FormLabel>Select Employee</FormLabel>
-            <TomSelect
+            <FormSelect
               value={formData.employeeId}
               onChange={handleEmployeeChange}
-              options={{
-                placeholder: "Select Employee",
-                allowEmptyOption: true,
-              }}
               className="w-full"
             >
               <option value="">Select Employee</option>
@@ -413,7 +425,7 @@ const Main: React.FC = () => {
                   {emp.firstName} {emp.lastName}
                 </option>
               ))}
-            </TomSelect>
+            </FormSelect>
 
             {formErrors.employeeId && (
               <p className="text-red-500 text-sm mt-1">{formErrors.employeeId}</p>

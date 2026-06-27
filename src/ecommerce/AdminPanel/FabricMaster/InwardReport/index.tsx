@@ -13,11 +13,19 @@ import AddInwardReport from "./AddInwardReport";
 
 interface Inward {
   id: number;
-  FabricName: string;
-  SupplierName: string;
-  BatchNo: number;
-  QtyMTR: number;
-  Comments: string;
+  supplierMasterId?: number;
+  fabricMasterId?: number;
+  fGramageMasterId?: number | null;
+  colourMasterId?: number | null;
+  supplierMasterName?: string;
+  fabricMasterName?: string;
+  fGramageMasterName?: string;
+  colourMasterName?: string;
+  batchNo: number;
+  qtyMTR: number;
+  comments: string;
+  attachedFile?: string;
+  isActive?: number;
 }
 
 function Main() {
@@ -36,7 +44,7 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const [editInwardModal, setEditInwardModal] = useState(false);
    const [editingInwardId, setEditingInwardId] = useState<number | null>(null);
   
-  const [InwardoEdit, setInwardToEdit] = useState<any>(null);
+  const [InwardoEdit, setInwardToEdit] = useState<Inward | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
   const searchRef = useRef(searchTerm);
  
@@ -80,18 +88,27 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
       paginationMode: "remote",
       filterMode: "remote",
       sortMode: "remote",
-      layout: "fitColumns",
-      responsiveLayout: "collapse",
+      layout: "fitDataStretch",
+      responsiveLayout: false,
       placeholder: "No matching records found",
       paginationSize: 10,
       paginationSizeSelector: [10, 20, 30, 50],
       columns: [
-        { title: "Sr.No", hozAlign: "center",headerHozAlign: "center",formatter: "rownum", width: 80 },
-        { title: "Supplier ", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 200 },
-        { title: "Fabric", hozAlign: "center", headerHozAlign: "center", field: "fabricMasterName", minWidth: 200 },
-        { title: "Batch No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 200 },
-        { title: "QTY IN MTR", hozAlign: "center", headerHozAlign: "center", field: "qtyMTR", minWidth: 200 },
-        { title: "Comments", hozAlign: "center", headerHozAlign: "center", field: "comments", minWidth: 200 },
+        { title: "Sr.No", hozAlign: "center", headerHozAlign: "center", formatter: "rownum", width: 80, cssClass: "whitespace-nowrap" },
+        { title: "Supplier ", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "Fabric", hozAlign: "center", headerHozAlign: "center", field: "fabricMasterName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "GRM", hozAlign: "center", headerHozAlign: "center", field: "fGramageMasterName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "Colour", hozAlign: "center", headerHozAlign: "center", field: "colourMasterName", minWidth: 150, cssClass: "whitespace-nowrap" },
+        { title: "Batch No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 120, cssClass: "whitespace-nowrap" },
+        { title: "QTY IN MTR", hozAlign: "center", headerHozAlign: "center", field: "qtyMTR", minWidth: 140, cssClass: "whitespace-nowrap" },
+        {
+          title: "Comments",
+          hozAlign: "center",
+          headerHozAlign: "center",
+          field: "comments",
+          minWidth: 220,
+          cssClass: "whitespace-nowrap overflow-hidden text-ellipsis",
+        },
 
 
         {
@@ -99,10 +116,11 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
           field: "actions",
           hozAlign: "center",
           headerHozAlign: "center",
-          minWidth: 150,
+          minWidth: 180,
+          cssClass: "whitespace-nowrap",
           formatter: (cell) => {
             const container = document.createElement("div");
-container.className = "flex justify-center items-center gap-2";
+container.className = "flex justify-center items-center gap-2 whitespace-nowrap";
 
             const rowData = cell.getRow().getData();
             const actions = [
@@ -112,6 +130,7 @@ container.className = "flex justify-center items-center gap-2";
                 classes: "bg-green-100 hover:bg-green-200 text-green-800",
                 onClick: () => {
                   setEditingInwardId(rowData.id);
+                  setInwardToEdit(rowData as Inward);
                   setEditInwardModal(true);
                 },
                 
@@ -242,8 +261,9 @@ const handleFilterChange = (value: string) => {
       <EditInwardReport
         open={editInwardModal}
         onClose={() => setEditInwardModal(false)}
-         InwardId={editingInwardId}
-          onSuccess={refreshTable}
+        InwardId={editingInwardId}
+        initialData={InwardoEdit}
+        onSuccess={refreshTable}
       />
 
       <Dialog
@@ -285,4 +305,3 @@ const handleFilterChange = (value: string) => {
 }
 
 export default Main;
-
