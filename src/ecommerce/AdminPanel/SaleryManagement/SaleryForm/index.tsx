@@ -411,7 +411,7 @@ const Main: React.FC = () => {
       <div className="p-6">
         <h2 className="text-xl font-medium mb-6">Salary Form</h2>
 
-        <form className="box p-5 space-y-4 w-full max-w-xl" onSubmit={handleSubmit}>
+        <form className="box p-5 space-y-4 w-full max-w-full" onSubmit={handleSubmit}>
           <div>
             <FormLabel>Select Employee</FormLabel>
             <FormSelect
