@@ -5,12 +5,17 @@ import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
 import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
 import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
+import {
+  calculateEmployeeMonthlyAttendance,
+  getCurrentMonthKey,
+} from "../attendanceSalary";
 
 interface Employee {
   id: number;
   firstName: string;
   lastName: string;
   type: number | string | null;
+  dailySalary: number | null;
 }
 
 interface EmployeeApiItem {
@@ -24,6 +29,8 @@ interface EmployeeApiItem {
   LastName?: string;
   type?: number | string | null;
   Type?: number | string | null;
+  dailySalary?: number | null;
+  DailySalary?: number | null;
   isActive?: number | boolean | null;
   IsActive?: number | boolean | null;
 }
@@ -193,6 +200,11 @@ const Main: React.FC = () => {
   const [employeeList, setEmployeeList] = useState<Employee[]>([]);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [employeeOutstandingCredit, setEmployeeOutstandingCredit] = useState(0);
+  const [selectedSalaryMonth, setSelectedSalaryMonth] = useState(
+    getCurrentMonthKey()
+  );
+  const [selectedEmployeeDailySalary, setSelectedEmployeeDailySalary] =
+    useState(0);
 
   const [successModalConfig, setSuccessModalConfig] =
     useState<SuccessModalConfig>({
@@ -216,6 +228,15 @@ const Main: React.FC = () => {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  const salaryCalculation = useMemo(
+    () =>
+      calculateEmployeeMonthlyAttendance(
+        Number(formData.employeeId),
+        selectedSalaryMonth
+      ),
+    [formData.employeeId, selectedSalaryMonth]
+  );
+
   const grossSalaryValue = Number(formData.totalSalary) || 0;
   const maxAllowedDeduction = useMemo(
     () => Math.min(grossSalaryValue, employeeOutstandingCredit),
@@ -226,6 +247,20 @@ const Main: React.FC = () => {
     return Math.max(0, Math.min(rawDeduction, maxAllowedDeduction));
   }, [manualCreditDeduction, maxAllowedDeduction]);
   const netSalaryPayable = Math.max(grossSalaryValue - creditDeductionValue, 0);
+
+  useEffect(() => {
+    const grossSalary =
+      salaryCalculation.salaryDays * selectedEmployeeDailySalary;
+
+    setFormData((prev) => ({
+      ...prev,
+      attendance: String(salaryCalculation.attendance),
+      extraHours: String(salaryCalculation.extraHours),
+      totalLate: String(salaryCalculation.totalLate),
+      halfDay: String(salaryCalculation.halfDay),
+      totalSalary: grossSalary > 0 ? grossSalary.toFixed(2) : "",
+    }));
+  }, [salaryCalculation, selectedEmployeeDailySalary]);
 
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -247,6 +282,10 @@ const Main: React.FC = () => {
               .join(" ")
               .trim(),
             type: emp.type ?? emp.Type ?? null,
+            dailySalary:
+              emp.dailySalary === null || emp.DailySalary === null
+                ? null
+                : Number(emp.dailySalary ?? emp.DailySalary ?? 0),
             isActive: emp.isActive ?? emp.IsActive ?? 1,
           }))
           .filter(
@@ -293,11 +332,13 @@ const Main: React.FC = () => {
         type: "",
       }));
       setEmployeeOutstandingCredit(0);
+      setSelectedEmployeeDailySalary(0);
       setManualCreditDeduction("");
       return;
     }
 
     let normalizedType: number | null = null;
+    let dailySalary = 0;
 
     try {
       const employeeResponse = await axios.get(`${BASE_URL}/api/employees/${value}`, {
@@ -306,6 +347,11 @@ const Main: React.FC = () => {
 
       const apiType = employeeResponse.data?.type ?? employeeResponse.data?.Type ?? null;
       normalizedType = apiType === null || apiType === undefined ? null : Number(apiType);
+      dailySalary = Number(
+        employeeResponse.data?.dailySalary ??
+          employeeResponse.data?.DailySalary ??
+          0
+      );
     } catch (error) {
       const selectedEmployee = employeeList.find(
         (emp) => emp.id.toString() === value
@@ -314,6 +360,7 @@ const Main: React.FC = () => {
         selectedEmployee?.type === null || selectedEmployee?.type === undefined
           ? null
           : Number(selectedEmployee.type);
+      dailySalary = Number(selectedEmployee?.dailySalary ?? 0);
       console.error("Error fetching employee details:", error);
     }
 
@@ -324,6 +371,7 @@ const Main: React.FC = () => {
     }));
     setFormErrors((prev) => ({ ...prev, employeeId: "" }));
     updateOutstandingCredit(value);
+    setSelectedEmployeeDailySalary(Number.isFinite(dailySalary) ? dailySalary : 0);
     setManualCreditDeduction("");
   };
 
@@ -336,9 +384,15 @@ const Main: React.FC = () => {
     if (!formData.employeeId) errors.employeeId = "Employee is required";
     if (!Number.isFinite(employeeIdNum) || employeeIdNum <= 0)
       errors.employeeId = "Please select a valid employee";
+    if (!selectedSalaryMonth) errors.salaryMonth = "Month and year are required";
     if (!formData.attendance) errors.attendance = "Attendance is required";
-    if (!formData.totalSalary) errors.totalSalary = "Gross salary is required";
-    if (grossSalaryValue <= 0) errors.totalSalary = "Gross salary should be more than 0";
+    if (selectedEmployeeDailySalary <= 0) {
+      errors.totalSalary = "Daily salary is missing in employee master";
+    } else if (!formData.totalSalary) {
+      errors.totalSalary = "Gross salary is required";
+    } else if (grossSalaryValue <= 0) {
+      errors.totalSalary = "Gross salary should be more than 0";
+    }
     if (creditDeductionValue >= grossSalaryValue && grossSalaryValue > 0) {
       errors.totalSalary = "Keep some salary payable to employee; reduce credit deduction.";
     }
@@ -353,6 +407,7 @@ const Main: React.FC = () => {
       totalLate: Number(formData.totalLate || 0),
       halfDay: Number(formData.halfDay || 0),
       totalSalary: netSalaryPayable,
+      createdDate: `${selectedSalaryMonth}-01T00:00:00.000Z`,
     };
 
     try {
@@ -402,6 +457,7 @@ const Main: React.FC = () => {
       totalSalary: "",
     });
     setEmployeeOutstandingCredit(0);
+    setSelectedEmployeeDailySalary(0);
     setManualCreditDeduction("");
     setFormErrors({});
   };
@@ -432,6 +488,34 @@ const Main: React.FC = () => {
             )}
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <FormLabel>Month and Year</FormLabel>
+              <FormInput
+                type="month"
+                value={selectedSalaryMonth}
+                onChange={(e) => {
+                  setSelectedSalaryMonth(e.target.value);
+                  setFormErrors((prev) => ({ ...prev, salaryMonth: "" }));
+                }}
+              />
+              {formErrors.salaryMonth && (
+                <p className="text-red-500 text-sm mt-1">
+                  {formErrors.salaryMonth}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <FormLabel>Daily Salary</FormLabel>
+              <FormInput
+                type="number"
+                value={selectedEmployeeDailySalary}
+                readOnly
+              />
+            </div>
+          </div>
+
           <div>
             <FormLabel>Type</FormLabel>
             <div className="mt-2 flex gap-4">
@@ -451,7 +535,7 @@ const Main: React.FC = () => {
             <FormInput
               type="number"
               value={formData.attendance}
-              onChange={(e) => setFormData({ ...formData, attendance: e.target.value })}
+              readOnly
             />
             {formErrors.attendance && (
               <p className="text-red-500 text-sm mt-1">{formErrors.attendance}</p>
@@ -463,7 +547,7 @@ const Main: React.FC = () => {
             <FormInput
               type="number"
               value={formData.extraHours}
-              onChange={(e) => setFormData({ ...formData, extraHours: e.target.value })}
+              readOnly
             />
           </div>
 
@@ -473,7 +557,7 @@ const Main: React.FC = () => {
               <FormInput
                 type="number"
                 value={formData.totalLate}
-                onChange={(e) => setFormData({ ...formData, totalLate: e.target.value })}
+                readOnly
               />
             </div>
 
@@ -482,9 +566,18 @@ const Main: React.FC = () => {
               <FormInput
                 type="number"
                 value={formData.halfDay}
-                onChange={(e) => setFormData({ ...formData, halfDay: e.target.value })}
+                readOnly
               />
             </div>
+          </div>
+
+          <div>
+            <FormLabel>Extra Paid Days</FormLabel>
+            <FormInput
+              type="number"
+              value={salaryCalculation.extraSalaryDays}
+              readOnly
+            />
           </div>
 
           <div>
@@ -492,7 +585,7 @@ const Main: React.FC = () => {
             <FormInput
               type="number"
               value={formData.totalSalary}
-              onChange={(e) => setFormData({ ...formData, totalSalary: e.target.value })}
+              readOnly
             />
             {formErrors.totalSalary && (
               <p className="text-red-500 text-sm mt-1">{formErrors.totalSalary}</p>

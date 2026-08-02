@@ -35,7 +35,8 @@ type SalaryRow = {
   id: number;
   Name: string;
   Type: string;
-  Date: string;
+  Month: string;
+  Year: string;
   SaleryPerDay: string;
   Attendence: number;
   ExtraHours: number;
@@ -76,6 +77,11 @@ function Main() {
           const displayDate = rawDate
             ? new Date(rawDate).toISOString().split("T")[0]
             : "";
+          const salaryDate = displayDate ? new Date(displayDate) : null;
+          const month = salaryDate
+            ? salaryDate.toLocaleString("en-US", { month: "long" })
+            : "";
+          const year = salaryDate ? String(salaryDate.getFullYear()) : "";
 
           return {
             id: Number(item.id ?? item.Id ?? index + 1),
@@ -86,7 +92,8 @@ function Main() {
                 : normalizedType === 0
                 ? "Staff"
                 : "",
-            Date: displayDate,
+            Month: month,
+            Year: year,
             SaleryPerDay: salaryPerDay,
             Attendence: attendance,
             ExtraHours: Number(item.extraHours ?? item.ExtraHours ?? 0),
@@ -122,7 +129,8 @@ function Main() {
         { title: "Sr.No", formatter: "rownum", width: 80, hozAlign: "center" },
         { title: "Name", field: "Name" },
         { title: "Type", field: "Type" },
-        { title: "Date", field: "Date" },
+        { title: "Month", field: "Month" },
+        { title: "Year", field: "Year" },
         { title: "Salery / Day", field: "SaleryPerDay" },
         { title: "Attendence", field: "Attendence" },
         { title: "Extra Hours", field: "ExtraHours" },
@@ -152,7 +160,8 @@ function Main() {
       [
         row.Name,
         row.Type,
-        row.Date,
+        row.Month,
+        row.Year,
         row.SaleryPerDay,
         row.Attendence,
         row.ExtraHours,

@@ -4,6 +4,10 @@ import { FormInput } from "@/components/Base/Form";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "@/assets/css/vendors/tabulator.css";
 import { BASE_URL } from "@/ecommerce/config/config";
+import {
+  calculateEmployeeMonthlyAttendance,
+  getSavedAttendanceMap,
+} from "../attendanceSalary";
 
 type EmployeeApiItem = {
   id?: number;
@@ -33,34 +37,6 @@ type AttendanceRow = {
   ExtraHours: number;
   TotalLate: number;
   HalfDay: number;
-};
-
-type AttendanceStatus = "Present" | "Absent" | "Half Day";
-
-type SavedAttendanceDay = {
-  note?: string;
-  rows?: Array<{
-    id: number;
-    status: AttendanceStatus;
-    inTime?: string;
-    outTime?: string;
-  }>;
-};
-
-type SavedAttendanceMap = Record<string, SavedAttendanceDay>;
-
-const DAILY_ATTENDANCE_STORAGE_KEY = "daily-attendence-records";
-
-const getSavedAttendanceMap = (): SavedAttendanceMap => {
-  try {
-    const raw = localStorage.getItem(DAILY_ATTENDANCE_STORAGE_KEY);
-    if (!raw) return {};
-
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
 };
 
 function Main() {
@@ -136,16 +112,13 @@ function Main() {
 
             const employeeInfo = employeeMap.get(employeeId);
             const key = `${employeeId}-${month}`;
-            const existing = aggregatedMap.get(key);
+            if (aggregatedMap.has(key)) return;
 
-            const attendanceIncrement = entry.status === "Present" ? 1 : 0;
-            const halfDayIncrement = entry.status === "Half Day" ? 1 : 0;
-
-            if (existing) {
-              existing.Attendance += attendanceIncrement;
-              existing.HalfDay += halfDayIncrement;
-              return;
-            }
+            const calculation = calculateEmployeeMonthlyAttendance(
+              employeeId,
+              month,
+              savedAttendanceMap
+            );
 
             aggregatedMap.set(key, {
               id: `att-${employeeId}-${month}-${dateIndex}`,
@@ -153,10 +126,10 @@ function Main() {
               Name: employeeInfo?.name ?? `Employee ${employeeId}`,
               Type: toTypeLabel(employeeInfo?.type),
               Month: month,
-              Attendance: attendanceIncrement,
-              ExtraHours: 0,
-              TotalLate: 0,
-              HalfDay: halfDayIncrement,
+              Attendance: calculation.attendance,
+              ExtraHours: calculation.extraHours,
+              TotalLate: calculation.totalLate,
+              HalfDay: calculation.halfDay,
             });
           });
         });

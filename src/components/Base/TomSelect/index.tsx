@@ -157,7 +157,7 @@ function TomSelect<T extends string | string[]>({
     <select
       {...computedProps}
       ref={(el) => {
-        selectRef.current = el;
+        selectRef.current = el as TomSelectElement | null;
       }}
       value={value}
       onChange={(e) => {
