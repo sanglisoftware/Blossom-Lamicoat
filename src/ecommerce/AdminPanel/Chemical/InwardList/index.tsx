@@ -15,6 +15,8 @@ interface ChemicalInward {
   id: number;
   chemicalMasterName?: string;
   qty?: number;
+  unitOfMeasurementId?: number | null;
+  unitOfMeasurementName?: string | null;
   supplierMasterName?: string;
   batchNo?: number;
   billDate?: string;
@@ -58,6 +60,7 @@ function Main() {
         { title: "Sr.No", hozAlign: "center",headerHozAlign: "center",formatter: "rownum", width: 80 },
         { title: "Chemical", hozAlign: "center", headerHozAlign: "center", field: "chemicalMasterName", minWidth: 150 },
        { title: "QTY", hozAlign: "center", headerHozAlign: "center", field: "qty", minWidth: 200 },        
+        { title: "Unit", hozAlign: "center", headerHozAlign: "center", field: "unitOfMeasurementName", minWidth: 120 },
         { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 150 },     
         { title: "Invoice No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 100 },
         { title: "Bill Date", hozAlign: "center", headerHozAlign: "center", field: "billDate", minWidth: 130, formatter: (cell) => formatDateValue(cell.getValue()) },
@@ -145,6 +148,7 @@ container.className = "flex justify-center items-center gap-2";
         const searchableText = [
           row.chemicalMasterName,
           row.supplierMasterName,
+          row.unitOfMeasurementName,
           row.batchNo,
           row.qty,
           formatDateValue(row.billDate),

@@ -107,6 +107,7 @@ import FinishedGood from "@/ecommerce/AdminPanel/FinishedGood";
 import GLM from "@/ecommerce/AdminPanel/FinishedGood/GSM_GLM/GLM";
 import Grade from "@/ecommerce/AdminPanel/Masters/Grade";
 import Colour from "@/ecommerce/AdminPanel/Masters/Colour";
+import UnitOfMeasurement from "@/ecommerce/AdminPanel/Masters/UnitOfMeasurement";
 import Customer from "@/ecommerce/AdminPanel/Masters/Customer";
 import Supplier from "@/ecommerce/AdminPanel/Masters/Supplier";
 import FormulaMaster from "@/ecommerce/AdminPanel/Masters/FormulaMaster";
@@ -174,6 +175,7 @@ function Router() {
             
             { path: "grade", element: <Grade/> },
             { path: "colour", element: <Colour/> },
+            { path: "unit-of-measurement", element: <UnitOfMeasurement/> },
             { path: "customer", element: <Customer/> },
             { path: "supplier", element: <Supplier/> },
             { path: "formula-master", element: <FormulaMaster/> },

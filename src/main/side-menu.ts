@@ -502,6 +502,11 @@ const menu: Array<Menu | "divider"> = [
         pathname: "/product-size-master",
         title: "Product Size Master",
       },
+      {
+        icon: "Ruler",
+        pathname: "/unit-of-measurement",
+        title: "Unit Of Measurement",
+      },
     ],
   },
   {

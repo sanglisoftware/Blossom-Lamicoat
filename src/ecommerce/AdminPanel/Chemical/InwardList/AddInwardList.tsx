@@ -27,6 +27,12 @@ interface SupplierOptions {
   isActive: number;
 }
 
+interface UnitOfMeasurementOption {
+  id: number;
+  name: string;
+  isActive: number;
+}
+
 const isActiveItem = (value: number | boolean | null | undefined) =>
   value === 1 || value === true;
 
@@ -42,6 +48,7 @@ const AddInwardList: React.FC<AddInwardListProps> = ({
   const [formData, setFormData] = useState({
     chemicalId: "",
     QTY: "",
+    unitOfMeasurementId: "",
     supplierId: "",
     BatchNo: "",
     BillDate: getTodayDate(),
@@ -50,9 +57,11 @@ const AddInwardList: React.FC<AddInwardListProps> = ({
 
   const [chemicals, setChemicals] = useState<ChemicalOptions[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierOptions[]>([]);
+  const [unitOfMeasurements, setUnitOfMeasurements] = useState<UnitOfMeasurementOption[]>([]);
 
   const [chemicalsLoaded, setChemicalsLoaded] = useState(false);
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
+  const [unitOfMeasurementsLoaded, setUnitOfMeasurementsLoaded] = useState(false);
   const [isAddChemicalOpen, setIsAddChemicalOpen] = useState(false);
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [quickChemicalData, setQuickChemicalData] = useState({
@@ -113,16 +122,31 @@ const AddInwardList: React.FC<AddInwardListProps> = ({
     }
   };
 
+  const fetchUnitOfMeasurements = async () => {
+    try {
+      setUnitOfMeasurementsLoaded(false);
+      const response = await axios.get(`${BASE_URL}/api/unitofmeasurement?page=1&size=1000`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUnitOfMeasurements(response.data.items || response.data.Items || []);
+      setUnitOfMeasurementsLoaded(true);
+    } catch (error) {
+      console.error("Error fetching units of measurement:", error);
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
     fetchChemicals();
     fetchSuppliers();
+    fetchUnitOfMeasurements();
   }, [open, token]);
 
   const clearFormData = () =>
     setFormData({
       chemicalId: "",
       QTY: "",
+      unitOfMeasurementId: "",
       supplierId: "",
       BatchNo: "",
       BillDate: getTodayDate(),
@@ -138,6 +162,10 @@ const AddInwardList: React.FC<AddInwardListProps> = ({
     () => suppliers.filter((s) => isActiveItem(s.isActive)),
     [suppliers]
   );
+  const activeUnitOfMeasurements = useMemo(
+    () => unitOfMeasurements.filter((u) => isActiveItem(u.isActive)),
+    [unitOfMeasurements]
+  );
 
   const handleChemicalChange = (value: string | number) => {
     setFormData((prev) => ({ ...prev, chemicalId: String(value) }));
@@ -145,6 +173,10 @@ const AddInwardList: React.FC<AddInwardListProps> = ({
 
   const handleSupplierChange = (value: string | number) => {
     setFormData((prev) => ({ ...prev, supplierId: String(value) }));
+  };
+
+  const handleUnitOfMeasurementChange = (value: string | number) => {
+    setFormData((prev) => ({ ...prev, unitOfMeasurementId: String(value) }));
   };
 
   const addChemicalToList = (chemical: ChemicalOptions) => {
@@ -313,6 +345,7 @@ const AddInwardList: React.FC<AddInwardListProps> = ({
     const errors: Record<string, string> = {};
     if (!formData.chemicalId) errors.chemicalId = "Chemical is required";
     if (!formData.QTY) errors.QTY = "QTY is required";
+    if (!formData.unitOfMeasurementId) errors.unitOfMeasurementId = "Unit is required";
     if (!formData.supplierId) errors.supplierId = "Supplier is required";
     if (!formData.BatchNo) errors.BatchNo = "BatchNo is required";
     if (!formData.BillDate) errors.BillDate = "Bill Date is required";
@@ -325,6 +358,7 @@ const AddInwardList: React.FC<AddInwardListProps> = ({
       const payload = {
         chemicalMasterId: Number(formData.chemicalId),
         qty: Number(formData.QTY),
+        unitOfMeasurementId: Number(formData.unitOfMeasurementId),
         supplierMasterId: Number(formData.supplierId),
         batchNo: Number(formData.BatchNo),
         billDate: formData.BillDate,
@@ -499,6 +533,30 @@ const AddInwardList: React.FC<AddInwardListProps> = ({
                 }}
               />
               {formErrors.QTY && <p className="text-red-500 text-sm">{formErrors.QTY}</p>}
+            </div>
+
+            <div>
+              <FormLabel>Unit</FormLabel>
+              {unitOfMeasurementsLoaded ? (
+                <TomSelect
+                  value={formData.unitOfMeasurementId}
+                  onChange={(e) => handleUnitOfMeasurementChange(e.target.value)}
+                  options={{ placeholder: "Select Unit", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Unit</option>
+                  {activeUnitOfMeasurements.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading units...</p>
+              )}
+              {formErrors.unitOfMeasurementId && (
+                <p className="text-red-500 text-sm">{formErrors.unitOfMeasurementId}</p>
+              )}
             </div>
 
             {/* Supplier Dropdown */}

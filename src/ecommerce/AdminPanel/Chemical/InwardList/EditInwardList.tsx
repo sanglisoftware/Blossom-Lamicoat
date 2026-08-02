@@ -28,6 +28,12 @@ interface Supplier {
   isActive: number;
 }
 
+interface UnitOfMeasurement {
+  id: number;
+  name: string;
+  isActive: number;
+}
+
 const isActiveItem = (value: number | boolean | null | undefined) =>
   value === 1 || value === true;
 
@@ -43,6 +49,7 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
     chemicalId: "",
     ChemicalName: "",
     QTY: "",
+    unitOfMeasurementId: "",
     supplierId: "",
     Supplier: "",
     BatchNo: "",
@@ -53,8 +60,10 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
 
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [unitOfMeasurements, setUnitOfMeasurements] = useState<UnitOfMeasurement[]>([]);
   const [chemicalsLoaded, setChemicalsLoaded] = useState(false);
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
+  const [unitOfMeasurementsLoaded, setUnitOfMeasurementsLoaded] = useState(false);
   const [isAddChemicalOpen, setIsAddChemicalOpen] = useState(false);
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
   const [quickChemicalData, setQuickChemicalData] = useState({
@@ -89,15 +98,19 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
     try {
       setChemicalsLoaded(false);
       setSuppliersLoaded(false);
-      const [chemicalRes, suppRes] = await Promise.all([
+      setUnitOfMeasurementsLoaded(false);
+      const [chemicalRes, suppRes, unitRes] = await Promise.all([
         axios.get(`${BASE_URL}/api/chemical?page=1&size=1000`, { headers: { Authorization: `Bearer ${token}` } }),
         axios.get(`${BASE_URL}/api/supplier?page=1&size=1000`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${BASE_URL}/api/unitofmeasurement?page=1&size=1000`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
       setChemicals((chemicalRes.data.items || []).filter((c: Chemical) => isActiveItem(c.isActive)));
       setSuppliers((suppRes.data.items || []).filter((s: Supplier) => isActiveItem(s.isActive)));
+      setUnitOfMeasurements((unitRes.data.items || unitRes.data.Items || []).filter((u: UnitOfMeasurement) => isActiveItem(u.isActive)));
       setChemicalsLoaded(true);
       setSuppliersLoaded(true);
+      setUnitOfMeasurementsLoaded(true);
     } catch (error) {
       console.error("Error fetching chemicals or suppliers:", error);
     }
@@ -142,6 +155,7 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
           chemicalId: res.data.chemicalMasterId?.toString() || "",
           ChemicalName: chemicalName,
           QTY: res.data.qty?.toString() || "",
+          unitOfMeasurementId: res.data.unitOfMeasurementId?.toString() || "",
           supplierId: res.data.supplierMasterId?.toString() || "",
           Supplier: supplierName,
           BatchNo: res.data.batchNo?.toString() || "",
@@ -162,6 +176,10 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
 
   const activeChemicals = useMemo(() => chemicals.filter((c) => isActiveItem(c.isActive)), [chemicals]);
   const activeSuppliers = useMemo(() => suppliers.filter((s) => isActiveItem(s.isActive)), [suppliers]);
+  const activeUnitOfMeasurements = useMemo(
+    () => unitOfMeasurements.filter((u) => isActiveItem(u.isActive)),
+    [unitOfMeasurements]
+  );
 
   const handleChemicalChange = (value: string | number) => {
     setFormData((prev) => ({ ...prev, chemicalId: String(value) }));
@@ -171,6 +189,11 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
   const handleSupplierChange = (value: string | number) => {
     setFormData((prev) => ({ ...prev, supplierId: String(value) }));
     setFormErrors((prev) => ({ ...prev, Supplier: "" }));
+  };
+
+  const handleUnitOfMeasurementChange = (value: string | number) => {
+    setFormData((prev) => ({ ...prev, unitOfMeasurementId: String(value) }));
+    setFormErrors((prev) => ({ ...prev, unitOfMeasurementId: "" }));
   };
 
   const addChemicalToList = (chemical: Chemical) => {
@@ -339,6 +362,7 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
     const errors: Record<string, string> = {};
     if (!formData.chemicalId) errors.ChemicalName = "Chemical is required";
     if (!formData.QTY) errors.QTY = "QTY is required";
+    if (!formData.unitOfMeasurementId) errors.unitOfMeasurementId = "Unit is required";
     if (!formData.supplierId) errors.Supplier = "Supplier is required";
     if (!formData.BatchNo) errors.BatchNo = "Batch No is required";
     if (!formData.BillDate) errors.BillDate = "Bill Date is required";
@@ -352,6 +376,7 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
         id: formData.id,
         chemicalMasterId: Number(formData.chemicalId),
         qty: Number(formData.QTY),
+        unitOfMeasurementId: Number(formData.unitOfMeasurementId),
         supplierMasterId: Number(formData.supplierId),
         batchNo: Number(formData.BatchNo),
         billDate: formData.BillDate,
@@ -523,6 +548,30 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
                 }}
               />
               {formErrors.QTY && <p className="text-sm text-red-500">{formErrors.QTY}</p>}
+            </div>
+
+            <div>
+              <FormLabel>Unit</FormLabel>
+              {unitOfMeasurementsLoaded ? (
+                <TomSelect
+                  value={formData.unitOfMeasurementId}
+                  onChange={(e) => handleUnitOfMeasurementChange(e.target.value)}
+                  options={{ placeholder: "Select Unit", allowEmptyOption: true }}
+                  className="w-full"
+                >
+                  <option value="">Select Unit</option>
+                  {activeUnitOfMeasurements.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.name}
+                    </option>
+                  ))}
+                </TomSelect>
+              ) : (
+                <p className="text-gray-500 text-sm">Loading units...</p>
+              )}
+              {formErrors.unitOfMeasurementId && (
+                <p className="text-sm text-red-500">{formErrors.unitOfMeasurementId}</p>
+              )}
             </div>
 
             {/* Supplier */}
