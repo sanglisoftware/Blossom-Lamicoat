@@ -188,6 +188,11 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     setAttachedFile(null);
   };
 
+  const handleFieldChange = (field: keyof typeof initialState, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
   // ================= HANDLE SUBMIT =================
   const handleSubmit = async () => {
     const errors: Record<string, string> = {};
@@ -287,10 +292,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 <TomSelect
                   value={formData.supplierId}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      supplierId: e.target.value,
-                    })
+                    handleFieldChange("supplierId", e.target.value)
                   }
                   options={{
                     placeholder: "Select Supplier",
@@ -324,10 +326,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 <TomSelect
                   value={formData.PVCId}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      PVCId: e.target.value,
-                    })
+                    handleFieldChange("PVCId", e.target.value)
                   }
                   options={{
                     placeholder: "Select PVC",
@@ -361,10 +360,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                   type="text"
                   value={formData.new_RollNo}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      new_RollNo: e.target.value,
-                    })
+                    handleFieldChange("new_RollNo", e.target.value)
                   }
                 />
                 {formErrors.new_RollNo && (
@@ -380,10 +376,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                   type="text"
                   value={formData.batchNo}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      batchNo: e.target.value,
-                    })
+                    handleFieldChange("batchNo", e.target.value)
                   }
                 />
                 {formErrors.batchNo && (
@@ -401,10 +394,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                   type="number"
                   value={formData.qty_kg}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      qty_kg: e.target.value,
-                    })
+                    handleFieldChange("qty_kg", e.target.value)
                   }
                 />
                 {formErrors.qty_kg && (
@@ -420,10 +410,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                   type="number"
                   value={formData.qty_Mtr}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      qty_Mtr: e.target.value,
-                    })
+                    handleFieldChange("qty_Mtr", e.target.value)
                   }
                 />
                 {formErrors.qty_Mtr && (
@@ -441,10 +428,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 <TomSelect
                   value={formData.gramageMasterId}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      gramageMasterId: e.target.value,
-                    })
+                    handleFieldChange("gramageMasterId", e.target.value)
                   }
                   options={{ placeholder: "Select Gramage", allowEmptyOption: true }}
                   className="w-full"
@@ -470,10 +454,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 <TomSelect
                   value={formData.widthMasterId}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      widthMasterId: e.target.value,
-                    })
+                    handleFieldChange("widthMasterId", e.target.value)
                   }
                   options={{ placeholder: "Select Width", allowEmptyOption: true }}
                   className="w-full"
@@ -499,10 +480,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 <TomSelect
                   value={formData.colourMasterId}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      colourMasterId: e.target.value,
-                    })
+                    handleFieldChange("colourMasterId", e.target.value)
                   }
                   options={{ placeholder: "Select Colour", allowEmptyOption: true }}
                   className="w-full"
@@ -528,10 +506,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 type="text"
                 value={formData.comments}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    comments: e.target.value,
-                  })
+                  handleFieldChange("comments", e.target.value)
                 }
               />
             </div>
@@ -560,10 +535,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                   type="date"
                   value={formData.billDate}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      billDate: e.target.value,
-                    })
+                    handleFieldChange("billDate", e.target.value)
                   }
                 />
               </div>
@@ -574,10 +546,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                   type="date"
                   value={formData.receivedDate}
                   onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      receivedDate: e.target.value,
-                    })
+                    handleFieldChange("receivedDate", e.target.value)
                   }
                 />
               </div>

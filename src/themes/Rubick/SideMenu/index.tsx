@@ -20,6 +20,15 @@ import clsx from "clsx";
 import TopBar from "@/components/Themes/Rubick/TopBar";
 import MobileMenu from "@/components/MobileMenu";
 
+const removeStandalonePVCInwardMenu = (menus: any[]): any[] =>
+  menus
+    .filter((menu) => menu === "divider" || menu.pathname !== "/PVC-Inward")
+    .map((menu) =>
+      menu === "divider" || !menu.subMenu
+        ? menu
+        : { ...menu, subMenu: removeStandalonePVCInwardMenu(menu.subMenu) }
+    );
+
 function Main() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,7 +39,7 @@ function Main() {
   // const menu = () => nestedMenu(menuStore, location);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-  const [menuStore, setMenuStore] = useState([]);
+  const [menuStore, setMenuStore] = useState<any[]>([]);
   const menu = () => nestedMenu(menuStore, location);
 
   useEffect(() => {
@@ -38,7 +47,7 @@ function Main() {
     if (token) {
       const storedMenu = localStorage.getItem("menu");
       if (storedMenu) {
-        setMenuStore(JSON.parse(storedMenu));
+        setMenuStore(removeStandalonePVCInwardMenu(JSON.parse(storedMenu)));
       }
     }
   }, []);

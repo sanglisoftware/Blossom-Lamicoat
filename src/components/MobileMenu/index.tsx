@@ -13,6 +13,15 @@ import logoUrl from "/vite.svg";
 import clsx from "clsx";
 import SimpleBar from "simplebar";
 
+const removeStandalonePVCInwardMenu = (menus: any[]): any[] =>
+  menus
+    .filter((menu) => menu === "divider" || menu.pathname !== "/PVC-Inward")
+    .map((menu) =>
+      menu === "divider" || !menu.subMenu
+        ? menu
+        : { ...menu, subMenu: removeStandalonePVCInwardMenu(menu.subMenu) }
+    );
+
 function Main() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,7 +48,7 @@ function Main() {
     const storedMenu = localStorage.getItem("menu");
     if (storedMenu) {
       try {
-        menuData = JSON.parse(storedMenu);
+        menuData = removeStandalonePVCInwardMenu(JSON.parse(storedMenu));
       } catch (err) {
         console.error("Invalid menu JSON in localStorage", err);
       }
