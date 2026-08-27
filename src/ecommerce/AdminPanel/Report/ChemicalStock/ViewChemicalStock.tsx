@@ -6,10 +6,20 @@ import Dialog from "@/components/Base/Headless/Dialog";
 interface ViewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  data: any[];
+  title: string;
+  data: Array<{
+    Date: string;
+    Supplier: string;
+    InvoiceNo: string;
+    OP_BAL: number;
+    Received: number;
+    Used: number;
+    Balance: number;
+    Unit: string;
+  }>;
 }
 
-function ViewChemicalStock({ isOpen, onClose, data }: ViewModalProps) {
+function ViewChemicalStock({ isOpen, onClose, title, data }: ViewModalProps) {
   return (
     <Dialog
       open={isOpen}
@@ -20,7 +30,7 @@ function ViewChemicalStock({ isOpen, onClose, data }: ViewModalProps) {
       <Dialog.Panel className="p-0">
         {/* Header */}
         <Dialog.Title className="px-5 py-3 border-b">
-          <h2 className="font-medium text-base">Detail View</h2>
+          <h2 className="font-medium text-base">{title}</h2>
         </Dialog.Title>
 
         {/* Body */}
@@ -31,31 +41,39 @@ function ViewChemicalStock({ isOpen, onClose, data }: ViewModalProps) {
                 <Table.Tr>
                   <Table.Th className="text-center">Sr.No</Table.Th>
                   <Table.Th>Date</Table.Th>
-
                   <Table.Th>Supplier</Table.Th>
+                  <Table.Th>Invoice No</Table.Th>
                   <Table.Th>OP/BAL</Table.Th>
-                  <Table.Th className="text-center">Received KG</Table.Th>
+                  <Table.Th className="text-center">Received</Table.Th>
+                  <Table.Th className="text-center">Unit</Table.Th>
                   <Table.Th className="text-center">Used</Table.Th>
-                  <Table.Th className="text-center">Balence</Table.Th>
+                  <Table.Th className="text-center">Balance</Table.Th>
 
                 </Table.Tr>
               </Table.Thead>
 
               <Table.Tbody>
-                {data.map((row, index) => (
-                  <Table.Tr key={index}>
-                    <Table.Td className="text-center">{index + 1}</Table.Td>
-                    <Table.Td>{row.Date}</Table.Td>
-                    <Table.Td>{row.Supplier}</Table.Td>
-                    <Table.Td className="text-center">{row.OP_BAL}</Table.Td>
-                    <Table.Td className="text-center">{row.ReceivedKG}</Table.Td>
-                    <Table.Td className="text-center">{row.Used}</Table.Td>
-                    <Table.Td className="text-center">{row.Balence}</Table.Td>
-
-
-                    
+                {data.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td className="text-center" colSpan={9}>
+                      No stock details found
+                    </Table.Td>
                   </Table.Tr>
-                ))}
+                ) : (
+                  data.map((row, index) => (
+                    <Table.Tr key={`${row.Date}-${row.InvoiceNo}-${index}`}>
+                      <Table.Td className="text-center">{index + 1}</Table.Td>
+                      <Table.Td>{row.Date}</Table.Td>
+                      <Table.Td>{row.Supplier}</Table.Td>
+                      <Table.Td>{row.InvoiceNo}</Table.Td>
+                      <Table.Td className="text-center">{row.OP_BAL}</Table.Td>
+                      <Table.Td className="text-center">{row.Received}</Table.Td>
+                      <Table.Td className="text-center">{row.Unit}</Table.Td>
+                      <Table.Td className="text-center">{row.Used}</Table.Td>
+                      <Table.Td className="text-center">{row.Balance}</Table.Td>
+                    </Table.Tr>
+                  ))
+                )}
               </Table.Tbody>
             </Table>
           </div>

@@ -18,7 +18,7 @@ interface ChemicalInward {
   unitOfMeasurementId?: number | null;
   unitOfMeasurementName?: string | null;
   supplierMasterName?: string;
-  batchNo?: number;
+  batchNo?: string | number;
   billDate?: string;
   receivedDate?: string;
 }

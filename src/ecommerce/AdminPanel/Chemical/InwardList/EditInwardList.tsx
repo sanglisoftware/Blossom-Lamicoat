@@ -364,7 +364,7 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
     if (!formData.QTY) errors.QTY = "QTY is required";
     if (!formData.unitOfMeasurementId) errors.unitOfMeasurementId = "Unit is required";
     if (!formData.supplierId) errors.Supplier = "Supplier is required";
-    if (!formData.BatchNo) errors.BatchNo = "Batch No is required";
+    if (!formData.BatchNo.trim()) errors.BatchNo = "Batch No is required";
     if (!formData.BillDate) errors.BillDate = "Bill Date is required";
     if (!formData.ReceivedDate) errors.ReceivedDate = "Received Date is required";
 
@@ -378,7 +378,7 @@ const EditInwardList: React.FC<EditInwardListProps> = ({
         qty: Number(formData.QTY),
         unitOfMeasurementId: Number(formData.unitOfMeasurementId),
         supplierMasterId: Number(formData.supplierId),
-        batchNo: Number(formData.BatchNo),
+        batchNo: formData.BatchNo.trim(),
         billDate: formData.BillDate,
         receivedDate: formData.ReceivedDate,
         isActive: formData.isActive,
