@@ -124,6 +124,7 @@ import FabricDifference from "@/ecommerce/AdminPanel/Report/FabricDifference";
 import RMFabricStock from "@/ecommerce/AdminPanel/Report/RMFabricStock";
 import RMPVCStock from "@/ecommerce/AdminPanel/Report/RMPVCStock";
 import ChemicalStock from "@/ecommerce/AdminPanel/Report/ChemicalStock";
+import StockManagement from "@/ecommerce/AdminPanel/StockManagement";
 import FabricProductList from "@/ecommerce/AdminPanel/FabricMaster/FabricProductList";
 import ClothRollingForm from "@/ecommerce/AdminPanel/ClothRolling/ClothRollingForm";
 import ClothRollingReport from "@/ecommerce/AdminPanel/ClothRolling/ClothRollingReport";
@@ -196,6 +197,7 @@ function Router() {
             { path: "RM-fabric-stock", element: <RMFabricStock/> },
             { path: "RM-PVC-stock", element: <RMPVCStock/> },
             { path: "chemical-stock", element: <ChemicalStock/> },
+            { path: "stock-management", element: <StockManagement/> },
 
 
             { path: "cloth-rolling-form", element: <ClothRollingForm/> },
