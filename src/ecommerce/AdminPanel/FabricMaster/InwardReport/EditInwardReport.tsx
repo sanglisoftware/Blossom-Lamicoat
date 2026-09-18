@@ -297,15 +297,15 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} staticBackdrop size="md">
+      <Dialog open={open} onClose={onClose} staticBackdrop size="xl">
         <Dialog.Panel>
           <Dialog.Title>
             <h2 className="text-base font-medium">Edit Inward</h2>
           </Dialog.Title>
 
-          <Dialog.Description className="space-y-4">
+          <Dialog.Description className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             <>
-              <div>
+              <div className="order-4">
                 <FormLabel>Supplier</FormLabel>
                 <FormSelect
                   value={formData.supplierId}
@@ -322,7 +322,7 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
                 {formErrors.Supplier && <p className="text-sm text-red-500">{formErrors.Supplier}</p>}
               </div>
 
-              <div>
+              <div className="order-1">
                 <FormLabel>Fabric Name</FormLabel>
                 <FormSelect
                   value={formData.fabricId}
@@ -339,7 +339,7 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
                 {formErrors.ChemicalName && <p className="text-sm text-red-500">{formErrors.ChemicalName}</p>}
               </div>
 
-              <div>
+              <div className="order-2">
                 <FormLabel>GRM</FormLabel>
                 <FormSelect
                   value={formData.fGramageId}
@@ -356,7 +356,7 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
                 {formErrors.fGramageId && <p className="text-sm text-red-500">{formErrors.fGramageId}</p>}
               </div>
 
-              <div>
+              <div className="order-3">
                 <FormLabel>Colour</FormLabel>
                 <FormSelect
                   value={formData.colourId}
@@ -373,7 +373,7 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
                 {formErrors.colourId && <p className="text-sm text-red-500">{formErrors.colourId}</p>}
               </div>
 
-              <div>
+              <div className="order-6">
                 <FormLabel>Batch No</FormLabel>
                 <FormInput
                   type="text"
@@ -388,7 +388,7 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
                 {formErrors.BatchNo && <p className="text-sm text-red-500">{formErrors.BatchNo}</p>}
               </div>
 
-              <div>
+              <div className="order-5">
                 <FormLabel>QTY In MTR</FormLabel>
                 <FormInput
                   type="text"
@@ -403,8 +403,8 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
                 {formErrors.qtyMTR && <p className="text-sm text-red-500">{formErrors.qtyMTR}</p>}
               </div>
 
-              <div>
-                <FormLabel>Comments</FormLabel>
+              <div className="order-7">
+                <FormLabel>Comment</FormLabel>
                 <FormInput
                   type="text"
                   placeholder="Enter Comments"
@@ -418,7 +418,7 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
                 {formErrors.Comments && <p className="text-sm text-red-500">{formErrors.Comments}</p>}
               </div>
 
-              <div>
+              <div className="order-8">
                 <FormLabel>Attached File</FormLabel>
                 <FormInput
                   type="file"

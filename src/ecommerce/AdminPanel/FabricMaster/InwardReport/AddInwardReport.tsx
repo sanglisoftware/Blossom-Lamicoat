@@ -287,18 +287,18 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} staticBackdrop size="md">
+      <Dialog open={open} onClose={onClose} staticBackdrop size="xl">
         <Dialog.Panel>
           <Dialog.Title>
             <h2 className="text-base font-medium">Create New Inward</h2>
           </Dialog.Title>
 
-          <Dialog.Description className="space-y-4">
+          <Dialog.Description className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 
 
                 {/* Supplier Dropdown */}
-            <div>
-              <FormLabel>Suppliers</FormLabel>
+            <div className="order-4">
+              <FormLabel>Supplier</FormLabel>
               {suppliersLoaded ? (
                 <TomSelect
                   value={formData.supplierId}
@@ -320,8 +320,8 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
             </div>
 
             {/* Chemical Dropdown */}
-            <div>
-              <FormLabel>Fabric</FormLabel>  
+            <div className="order-1">
+              <FormLabel>Fabric Name</FormLabel>  
               {fabricLoaded ? (
                 <TomSelect
                   value={formData.fabricId}
@@ -342,7 +342,7 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
               {formErrors.fabricId && <p className="text-red-500 text-sm">{formErrors.fabricId}</p>}
             </div>
 
-            <div>
+            <div className="order-2">
               <FormLabel>GRM</FormLabel>
               {fGramagesLoaded ? (
                 <TomSelect
@@ -364,7 +364,7 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
               {formErrors.fGramageId && <p className="text-red-500 text-sm">{formErrors.fGramageId}</p>}
             </div>
 
-            <div>
+            <div className="order-3">
               <FormLabel>Colour</FormLabel>
               {coloursLoaded ? (
                 <TomSelect
@@ -387,7 +387,7 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
             </div>
 
             {/* QTY */}
-            <div>
+            <div className="order-5">
               <FormLabel>QTY in MTR</FormLabel>
               <FormInput
                 type="text"
@@ -405,7 +405,7 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
         
 
             {/* BatchNo */}
-            <div>
+            <div className="order-6">
               <FormLabel>Batch No</FormLabel>
               <FormInput
                 type="text"
@@ -421,8 +421,8 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
             </div>
 
             {/* Comments */}
-            <div>
-              <FormLabel>Comments</FormLabel>
+            <div className="order-7">
+              <FormLabel>Comment</FormLabel>
               <FormInput
                 type="text"
                 placeholder="Enter Comments"
@@ -436,7 +436,7 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
               {formErrors.Comments && <p className="text-red-500 text-sm">{formErrors.Comments}</p>}
             </div>
 
-            <div>
+            <div className="order-8">
               <FormLabel>Attached File</FormLabel>
               <FormInput
                 type="file"

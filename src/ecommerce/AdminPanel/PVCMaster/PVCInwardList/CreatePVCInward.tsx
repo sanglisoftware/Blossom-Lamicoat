@@ -248,7 +248,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} staticBackdrop size="md">
+      <Dialog open={open} onClose={onClose} staticBackdrop size="xl">
         <Dialog.Panel>
           <Dialog.Title>
             <h2 className="text-base font-medium">
@@ -256,10 +256,10 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
             </h2>
           </Dialog.Title>
 
-          <Dialog.Description className="space-y-4">
+          <Dialog.Description className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
 
             {/* Supplier */}
-            <div>
+            <div className="order-1">
               <FormLabel>Supplier</FormLabel>
               {suppliersLoaded ? (
                 <TomSelect
@@ -293,7 +293,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
             </div>
 
             {/* PVC */}
-            <div>
+            <div className="order-7">
               <FormLabel>PVC</FormLabel>
               {pvcOptionsLoaded ? (
                 <TomSelect
@@ -326,8 +326,8 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
+            <div className="contents">
+              <div className="order-3">
                 <FormLabel>New Roll No</FormLabel>
                 <FormInput
                   type="text"
@@ -343,7 +343,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 )}
               </div>
 
-              <div>
+              <div className="order-2">
                 <FormLabel>Invoice No</FormLabel>
                 <FormInput
                   type="text"
@@ -360,8 +360,8 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
+            <div className="contents">
+              <div className="order-10">
                 <FormLabel>QTY (kg)</FormLabel>
                 <FormInput
                   type="number"
@@ -380,7 +380,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
             </div>
 
             {/* Comments */}
-            <div>
+            <div className="order-8">
               <FormLabel>Gramage</FormLabel>
               {gramageLoaded ? (
                 <TomSelect
@@ -406,7 +406,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
               )}
             </div>
 
-            <div>
+            <div className="order-9">
               <FormLabel>Colour</FormLabel>
               {colourLoaded ? (
                 <TomSelect
@@ -432,8 +432,8 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
               )}
             </div>
 
-            <div>
-              <FormLabel>Comments</FormLabel>
+            <div className="order-11 md:col-span-2">
+              <FormLabel>Remark</FormLabel>
               <FormInput
                 type="text"
                 value={formData.comments}
@@ -443,7 +443,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
               />
             </div>
 
-            <div>
+            <div className="order-6">
               <FormLabel>Attached File</FormLabel>
               <FormInput
                 type="file"
@@ -460,8 +460,8 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
             </div>
 
             {/* Dates */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+            <div className="contents">
+              <div className="order-4">
                 <FormLabel>Bill Date</FormLabel>
                 <FormInput
                   type="date"
@@ -472,7 +472,7 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 />
               </div>
 
-              <div>
+              <div className="order-5">
                 <FormLabel>Received Date</FormLabel>
                 <FormInput
                   type="date"

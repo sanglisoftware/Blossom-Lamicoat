@@ -33,12 +33,6 @@ interface GramageOption {
   isActive: number;
 }
 
-interface WidthOption {
-  id: number;
-  grm: string;
-  isActive: number;
-}
-
 interface ColourOption {
   id: number;
   name: string;
@@ -63,10 +57,8 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
     new_RollNo:"",
     batchNo: "",
     qty_kg: "",
-    qty_Mtr:"",
     comments: "",
     gramageMasterId: "",
-    widthMasterId: "",
     colourMasterId: "",
     BillDate: "",
     ReceivedDate: "",
@@ -77,12 +69,10 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
   const [pvcOptions, setPVCOptions] = useState<PVC[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [gramageOptions, setGramageOptions] = useState<GramageOption[]>([]);
-  const [widthOptions, setWidthOptions] = useState<WidthOption[]>([]);
   const [colourOptions, setColourOptions] = useState<ColourOption[]>([]);
   const [pvcOptionsLoaded, setPVCOptionsLoaded] = useState(false);
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
   const [gramageLoaded, setGramageLoaded] = useState(false);
-  const [widthLoaded, setWidthLoaded] = useState(false);
   const [colourLoaded, setColourLoaded] = useState(false);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -101,23 +91,20 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
       try {
         setPVCOptionsLoaded(false);
         setSuppliersLoaded(false);
-        const [pvcRes, suppRes, gramageRes, widthRes, colourRes] = await Promise.all([
+        const [pvcRes, suppRes, gramageRes, colourRes] = await Promise.all([
           axios.get(`${BASE_URL}/api/pvcproductlist`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${BASE_URL}/api/supplier`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${BASE_URL}/api/gramage`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${BASE_URL}/api/width`, { headers: { Authorization: `Bearer ${token}` } }),
           axios.get(`${BASE_URL}/api/colour`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         setPVCOptions((pvcRes.data.items || []).filter((p: PVC) => p.isActive === 1));
         setSuppliers((suppRes.data.items || []).filter((s: Supplier) => s.isActive === 1));
         setGramageOptions((gramageRes.data.items || []).filter((g: GramageOption) => g.isActive === 1));
-        setWidthOptions((widthRes.data.items || []).filter((w: WidthOption) => w.isActive === 1));
         setColourOptions((colourRes.data.items || []).filter((c: ColourOption) => c.isActive === 1));
         setPVCOptionsLoaded(true);
         setSuppliersLoaded(true);
         setGramageLoaded(true);
-        setWidthLoaded(true);
         setColourLoaded(true);
       } catch (error) {
         console.error("Error fetching pvc or suppliers:", error);
@@ -149,10 +136,8 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
           new_RollNo: res.data.new_RollNo || "",
           batchNo: res.data.batchNo?.toString() || "",
           qty_kg: res.data.qty_kg?.toString() || "",
-          qty_Mtr: res.data.qty_Mtr?.toString() || "",
           comments: res.data.comments || "",
           gramageMasterId: res.data.gramageMasterId?.toString() || "",
-          widthMasterId: res.data.widthMasterId?.toString() || "",
           colourMasterId: res.data.colourMasterId?.toString() || "",
           BillDate: res.data.billDate?.split("T")[0] || "",
           ReceivedDate: res.data.receivedDate?.split("T")[0] || "",
@@ -201,7 +186,6 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
 
     try {
       const selectedGramage = gramageOptions.find((g) => String(g.id) === formData.gramageMasterId);
-      const selectedWidth = widthOptions.find((w) => String(w.id) === formData.widthMasterId);
       const selectedColour = colourOptions.find((c) => String(c.id) === formData.colourMasterId);
 
       const payload = new FormData();
@@ -210,12 +194,9 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
       payload.append("new_RollNo", formData.new_RollNo);
       payload.append("batchNo", formData.batchNo);
       payload.append("qty_kg", String(Number(formData.qty_kg)));
-      payload.append("qty_Mtr", String(Number(formData.qty_Mtr)));
       payload.append("comments", formData.comments);
       payload.append("gramageMasterId", String(Number(formData.gramageMasterId)));
       payload.append("gramageName", selectedGramage?.grm || "");
-      payload.append("widthMasterId", String(Number(formData.widthMasterId)));
-      payload.append("widthName", selectedWidth?.grm || "");
       payload.append("colourMasterId", String(Number(formData.colourMasterId)));
       payload.append("colourName", selectedColour?.name || "");
       payload.append("billDate", formData.BillDate);
@@ -250,21 +231,25 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
       }
     } catch (error: any) {
       console.error("Update error:", error);
-      alert(error.response?.data?.message || "Something went wrong");
+      alert(
+        error.response?.data?.detail ||
+        error.response?.data?.title ||
+        "Failed to update PVC inward"
+      );
     }
   };
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} staticBackdrop size="md">
+      <Dialog open={open} onClose={onClose} staticBackdrop size="xl">
         <Dialog.Panel>
           <Dialog.Title>
             <h2 className="text-base font-medium">Edit Inward</h2>
           </Dialog.Title>
 
-          <Dialog.Description className="space-y-4">
+          <Dialog.Description className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {/* Chemical Name */}
-                 <div>
+                 <div className="order-1">
               <FormLabel>Supplier</FormLabel>
               {suppliersLoaded ? (
                 <TomSelect
@@ -287,7 +272,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
             </div>
   {/* Supplier Dropdown */}
 
-            <div>
+            <div className="order-7">
               <FormLabel>PVC</FormLabel>
               {suppliersLoaded ? (
                 <TomSelect
@@ -308,7 +293,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
               )}
               {formErrors.PVCId && <p className="text-red-500 text-sm">{formErrors.PVCId}</p>}
               </div>
-                  <div>
+                  <div className="order-3">
                           <FormLabel>New Roll No</FormLabel>
                           <FormInput
                             type="text"
@@ -327,7 +312,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
                           )}
                          </div>
             {/* Invoice No */}
-            <div>
+            <div className="order-2">
               <FormLabel>Invoice No</FormLabel>
               <FormInput
                 type="text"
@@ -343,7 +328,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
             </div>
 
             {/* QTY */}
-            <div>
+            <div className="order-10">
               <FormLabel>QTY (kg)</FormLabel>
               <FormInput
                 type="text"
@@ -359,7 +344,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
             </div>
 
        
-            <div>
+            <div className="order-8">
               <FormLabel>Gramage</FormLabel>
               {gramageLoaded ? (
                 <TomSelect
@@ -383,7 +368,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
               {formErrors.gramageMasterId && <p className="text-red-500 text-sm">{formErrors.gramageMasterId}</p>}
             </div>
 
-            <div>
+            <div className="order-9">
               <FormLabel>Colour</FormLabel>
               {colourLoaded ? (
                 <TomSelect
@@ -407,8 +392,8 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
               {formErrors.colourMasterId && <p className="text-red-500 text-sm">{formErrors.colourMasterId}</p>}
             </div>
 
-            <div>
-              <FormLabel>Comments</FormLabel>
+            <div className="order-11 md:col-span-2">
+              <FormLabel>Remark</FormLabel>
               <FormInput
                 type="text"
                 placeholder="Enter Comments"
@@ -422,7 +407,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
               {formErrors.comments && <p className="text-red-500 text-sm">{formErrors.comments}</p>}
             </div>
 
-            <div>
+            <div className="order-6">
               <FormLabel>Attached File</FormLabel>
               <FormInput
                 type="file"
@@ -443,8 +428,8 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
             </div>
 
             {/* Dates */}
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div>
+            <div className="contents">
+              <div className="order-4">
                 <FormLabel>Bill Date</FormLabel>
                 <FormInput
                   type="date"
@@ -453,7 +438,7 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
                 />
                 {formErrors.BillDate && <p className="text-red-500 text-sm">{formErrors.BillDate}</p>}
               </div>
-              <div>
+              <div className="order-5">
                 <FormLabel>Received Date</FormLabel>
                 <FormInput
                   type="date"

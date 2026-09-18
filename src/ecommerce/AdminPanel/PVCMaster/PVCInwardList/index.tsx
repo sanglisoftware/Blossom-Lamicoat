@@ -29,6 +29,11 @@ const formatDateValue = (value?: string) => {
   return String(value).split("T")[0];
 };
 
+const getAttachmentUrl = (path: string) => {
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
 function Main() {
   const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
@@ -71,7 +76,12 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
         const page = tabulator.current?.getPage() || 1;
         const size = tabulator.current?.getPageSize() || 10;
 
-        const params: any = { page, size };
+        const params: any = {
+          page,
+          size,
+          "sort[0][field]": "id",
+          "sort[0][dir]": "desc",
+        };
         if (filterValueRef.current) {
           params["filter[0][type]"] = "like";
           params["filter[0][value]"] = filterValueRef.current;
@@ -99,12 +109,10 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
         { title: "Supplier", hozAlign: "center", headerHozAlign: "center", field: "supplierMasterName", minWidth: 150, cssClass: "whitespace-nowrap" },
         { title: "PVC", hozAlign: "center", headerHozAlign: "center", field: "pvcMasterName", minWidth: 150, cssClass: "whitespace-nowrap" },
         { title: "Gramage", hozAlign: "center", headerHozAlign: "center", field: "gramageName", minWidth: 150, cssClass: "whitespace-nowrap" },
-        { title: "Width", hozAlign: "center", headerHozAlign: "center", field: "widthName", minWidth: 150, cssClass: "whitespace-nowrap" },
         { title: "Colour", hozAlign: "center", headerHozAlign: "center", field: "colourName", minWidth: 150, cssClass: "whitespace-nowrap" },
         { title: "New Roll No", hozAlign: "center", headerHozAlign: "center", field: "new_RollNo", minWidth: 100, cssClass: "whitespace-nowrap" },
         { title: "Invoice No", hozAlign: "center", headerHozAlign: "center", field: "batchNo", minWidth: 100, cssClass: "whitespace-nowrap" },
         { title: "QTY (kg)", hozAlign: "center", headerHozAlign: "center", field: "qty_kg", minWidth: 140, cssClass: "whitespace-nowrap" },
-        { title: "QTY (MTR)", hozAlign: "center", headerHozAlign: "center", field: "qty_Mtr", minWidth: 140, cssClass: "whitespace-nowrap" },
         { title: "Bill Date", hozAlign: "center", headerHozAlign: "center", field: "billDate", minWidth: 130, formatter: (cell) => formatDateValue(cell.getValue()), cssClass: "whitespace-nowrap" },
         { title: "Received Date", hozAlign: "center", headerHozAlign: "center", field: "receivedDate", minWidth: 140, formatter: (cell) => formatDateValue(cell.getValue()), cssClass: "whitespace-nowrap" },
         {
@@ -121,7 +129,7 @@ const searchTimeout = useRef<NodeJS.Timeout | null>(null);
           field: "actions",
           hozAlign: "center",
           headerHozAlign: "center",
-          minWidth: 180,
+          minWidth: 270,
           cssClass: "whitespace-nowrap",
           formatter: (cell) => {
             const container = document.createElement("div");
@@ -129,6 +137,20 @@ container.className = "flex justify-center items-center gap-2 whitespace-nowrap"
 
             const rowData = cell.getRow().getData();
             const actions = [
+              ...(rowData.attachedFile
+                ? [{
+                    label: "View",
+                    icon: "eye",
+                    classes: "bg-blue-100 hover:bg-blue-200 text-blue-800",
+                    onClick: () => {
+                      window.open(
+                        getAttachmentUrl(rowData.attachedFile),
+                        "_blank",
+                        "noopener,noreferrer"
+                      );
+                    },
+                  }]
+                : []),
               {
                 label: "Edit",
                 icon: "check-square",
