@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Button from "@/components/Base/Button";
-import { FormInput, FormLabel } from "@/components/Base/Form";
-import TomSelect from "@/components/Base/TomSelect";
+import { FormInput, FormLabel, FormSelect } from "@/components/Base/Form";
 import { BASE_URL } from "@/ecommerce/config/config";
 import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
 import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
 
 type FormulaListItem = {
+  id?: number;
+  Id?: number;
   formulaMasterId?: number;
   FormulaMasterId?: number;
+  final_Product?: string;
+  Final_Product?: string;
   finalProductName?: string;
   FinalProductName?: string;
   mixtureName?: string;
@@ -79,7 +82,7 @@ const Main = () => {
     const fetchFormulaProducts = async () => {
       try {
         const response = await axios.get<FormulaListResponse>(
-          `${BASE_URL}/api/formulachemicaltransaction?page=1&size=1000`,
+          `${BASE_URL}/api/formulamaster?page=1&size=1000`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -89,9 +92,9 @@ const Main = () => {
         const uniqueMap = new Map<number, FinalProductOption>();
 
         items.forEach((item) => {
-          const formulaMasterId = Number(item.formulaMasterId ?? item.FormulaMasterId ?? 0);
+          const formulaMasterId = Number(item.id ?? item.Id ?? item.formulaMasterId ?? item.FormulaMasterId ?? 0);
           const finalProductName = String(
-            item.finalProductName ?? item.FinalProductName ?? ""
+            item.final_Product ?? item.Final_Product ?? item.finalProductName ?? item.FinalProductName ?? ""
           ).trim();
           const mixtureName = String(
             item.mixtureName ?? item.MixtureName ?? ""
@@ -231,22 +234,18 @@ const Main = () => {
       <form className="box p-5 space-y-4 w-full max-w-4xl" onSubmit={handleSubmit}>
         <div className="max-w-xl">
           <FormLabel>Select Final Product</FormLabel>
-          <TomSelect
+          <FormSelect
             value={formData.formulaMasterId}
             onChange={(event) => handleFinalProductChange(event.target.value)}
-            options={{
-              placeholder: "Select Final Product",
-              allowEmptyOption: true,
-            }}
             className="w-full"
           >
             <option value="">Select Final Product</option>
             {finalProducts.map((product) => (
               <option key={product.formulaMasterId} value={product.formulaMasterId}>
-                {product.finalProductName}
+                {product.finalProductName}{product.mixtureName ? ` - ${product.mixtureName}` : ""}
               </option>
             ))}
-          </TomSelect>
+          </FormSelect>
           {formErrors.formulaMasterId && (
             <p className="text-red-500 text-sm mt-1">{formErrors.formulaMasterId}</p>
           )}
