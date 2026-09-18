@@ -21,7 +21,7 @@ interface Inward {
   fabricMasterName?: string;
   fGramageMasterName?: string;
   colourMasterName?: string;
-  batchNo: number;
+  batchNo: string;
   qtyMTR: number;
   comments: string;
   attachedFile?: string;

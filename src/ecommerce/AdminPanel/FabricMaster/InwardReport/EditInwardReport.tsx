@@ -21,7 +21,7 @@ interface EditInwardReportProps {
     fabricMasterName?: string;
     fGramageMasterName?: string;
     colourMasterName?: string;
-    batchNo?: number;
+    batchNo?: string;
     qtyMTR?: number;
     comments?: string;
     attachedFile?: string;
@@ -256,7 +256,7 @@ const EditInwardReport: React.FC<EditInwardReportProps> = ({
         fabricMasterId: Number(formData.fabricId),
         fGramageMasterId: Number(formData.fGramageId),
         colourMasterId: Number(formData.colourId),
-        batchNo: Number(formData.BatchNo),
+        batchNo: formData.BatchNo.trim(),
         qtyMTR: Number(formData.qtyMTR),
         comments: formData.Comments,
         attachedFile: formData.attachedFile || "",

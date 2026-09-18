@@ -222,7 +222,7 @@ const AddInwardReport: React.FC<AddInwardReportProps> = ({
         fabricMasterId: Number(formData.fabricId),
         fGramageMasterId: Number(formData.fGramageId),
         colourMasterId: Number(formData.colourId),
-        batchNo: Number(formData.BatchNo),
+        batchNo: formData.BatchNo.trim(),
         qtyMTR: Number(formData.QTYMTR),
         comments: formData.Comments,
         attachedFile: "",
