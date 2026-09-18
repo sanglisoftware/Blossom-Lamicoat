@@ -190,10 +190,8 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
     if (!formData.new_RollNo) errors.NewRollNo = "New Roll No is required";
     if (!formData.batchNo) errors.batchNo = "Invoice No is required";
     if (!formData.qty_kg) errors.qty_kg = "QTY (Kg) is required";
-    if (!formData.qty_Mtr) errors.qty_Mtr = "QTY (MTR) is required";
     if (!formData.comments) errors.comments = "Comments is required";
     if (!formData.gramageMasterId) errors.gramageMasterId = "Gramage is required";
-    if (!formData.widthMasterId) errors.widthMasterId = "Width is required";
     if (!formData.colourMasterId) errors.colourMasterId = "Colour is required";
     if (!formData.BillDate) errors.BillDate = "Bill Date is required";
     if (!formData.ReceivedDate) errors.ReceivedDate = "Received Date is required";
@@ -361,21 +359,6 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
             </div>
 
        
-   <div>
-              <FormLabel>QTY (MTR)</FormLabel>
-              <FormInput
-                type="text"
-                placeholder="Enter QTY"
-                value={formData.qty_Mtr}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData({ ...formData, qty_Mtr: value });
-                  if (value.trim()) setFormErrors((prev) => ({ ...prev, qty_Mtr: "" }));
-                }}
-              />
-              {formErrors.qty_Mtr && <p className="text-red-500 text-sm">{formErrors.qty_Mtr}</p>}
-            </div>
-
             <div>
               <FormLabel>Gramage</FormLabel>
               {gramageLoaded ? (
@@ -398,30 +381,6 @@ const EditPVCInward: React.FC<EditInwardListProps> = ({
                 <p className="text-gray-500 text-sm">Loading gramage...</p>
               )}
               {formErrors.gramageMasterId && <p className="text-red-500 text-sm">{formErrors.gramageMasterId}</p>}
-            </div>
-
-            <div>
-              <FormLabel>Width</FormLabel>
-              {widthLoaded ? (
-                <TomSelect
-                  value={formData.widthMasterId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, widthMasterId: e.target.value })
-                  }
-                  options={{ placeholder: "Select Width", allowEmptyOption: true }}
-                  className="w-full"
-                >
-                  <option value="">Select Width</option>
-                  {widthOptions.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.grm}
-                    </option>
-                  ))}
-                </TomSelect>
-              ) : (
-                <p className="text-gray-500 text-sm">Loading width...</p>
-              )}
-              {formErrors.widthMasterId && <p className="text-red-500 text-sm">{formErrors.widthMasterId}</p>}
             </div>
 
             <div>

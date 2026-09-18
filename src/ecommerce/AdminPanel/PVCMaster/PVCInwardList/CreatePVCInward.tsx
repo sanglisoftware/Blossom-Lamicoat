@@ -32,12 +32,6 @@ interface GramageOption {
   isActive: number;
 }
 
-interface WidthOption {
-  id: number;
-  grm: string;
-  isActive: number;
-}
-
 interface ColourOption {
   id: number;
   name: string;
@@ -58,10 +52,8 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     new_RollNo:"",
     batchNo: "",
     qty_kg: "",
-    qty_Mtr: "",
     comments: "",
     gramageMasterId: "",
-    widthMasterId: "",
     colourMasterId: "",
     billDate: "",
     receivedDate: "",
@@ -73,13 +65,11 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
   const [suppliers, setSuppliers] = useState<SupplierOptions[]>([]);
   const [pvcOptions, setPVCOptions] = useState<PVCOptions[]>([]);
   const [gramageOptions, setGramageOptions] = useState<GramageOption[]>([]);
-  const [widthOptions, setWidthOptions] = useState<WidthOption[]>([]);
   const [colourOptions, setColourOptions] = useState<ColourOption[]>([]);
 
   const [suppliersLoaded, setSuppliersLoaded] = useState(false);
   const [pvcOptionsLoaded, setPVCOptionsLoaded] = useState(false);
   const [gramageLoaded, setGramageLoaded] = useState(false);
-  const [widthLoaded, setWidthLoaded] = useState(false);
   const [colourLoaded, setColourLoaded] = useState(false);
 
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -100,17 +90,13 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
       try {
         setPVCOptionsLoaded(false);
         setGramageLoaded(false);
-        setWidthLoaded(false);
         setColourLoaded(false);
 
-        const [pvcResponse, gramageResponse, widthResponse, colourResponse] = await Promise.all([
+        const [pvcResponse, gramageResponse, colourResponse] = await Promise.all([
           axios.get(`${BASE_URL}/api/pvcproductlist`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get(`${BASE_URL}/api/gramage`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          axios.get(`${BASE_URL}/api/width`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           axios.get(`${BASE_URL}/api/colour`, {
@@ -120,11 +106,9 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
 
         setPVCOptions(pvcResponse.data.items || []);
         setGramageOptions(gramageResponse.data.items || []);
-        setWidthOptions(widthResponse.data.items || []);
         setColourOptions(colourResponse.data.items || []);
         setPVCOptionsLoaded(true);
         setGramageLoaded(true);
-        setWidthLoaded(true);
         setColourLoaded(true);
       } catch (error) {
         console.error("Error fetching PVC:", error);
@@ -172,11 +156,6 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     [gramageOptions]
   );
 
-  const activeWidths = useMemo(
-    () => widthOptions.filter((w) => w.isActive === 1),
-    [widthOptions]
-  );
-
   const activeColours = useMemo(
     () => colourOptions.filter((c) => c.isActive === 1),
     [colourOptions]
@@ -202,10 +181,8 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
     if (!formData.new_RollNo) errors.new_RollNo = "New Roll No is required";
     if (!formData.batchNo) errors.batchNo = "Invoice No is required";
     if (!formData.qty_kg) errors.qty_kg = "QTY (kg) is required";
-    if (!formData.qty_Mtr) errors.qty_Mtr = "QTY (mtr) is required";
     if (!formData.comments) errors.comments = "Comments are required";
     if (!formData.gramageMasterId) errors.gramageMasterId = "Gramage is required";
-    if (!formData.widthMasterId) errors.widthMasterId = "Width is required";
     if (!formData.colourMasterId) errors.colourMasterId = "Colour is required";
     if (!formData.billDate) errors.billDate = "Bill Date is required";
     if (!formData.receivedDate)
@@ -216,7 +193,6 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
 
     try {
       const selectedGramage = activeGramages.find((g) => String(g.id) === formData.gramageMasterId);
-      const selectedWidth = activeWidths.find((w) => String(w.id) === formData.widthMasterId);
       const selectedColour = activeColours.find((c) => String(c.id) === formData.colourMasterId);
 
       const payload = new FormData();
@@ -225,12 +201,9 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
       payload.append("new_RollNo", formData.new_RollNo);
       payload.append("batchNo", formData.batchNo);
       payload.append("qty_kg", String(Number(formData.qty_kg)));
-      payload.append("qty_Mtr", String(Number(formData.qty_Mtr)));
       payload.append("comments", formData.comments);
       payload.append("gramageMasterId", String(Number(formData.gramageMasterId)));
       payload.append("gramageName", selectedGramage?.grm || "");
-      payload.append("widthMasterId", String(Number(formData.widthMasterId)));
-      payload.append("widthName", selectedWidth?.grm || "");
       payload.append("colourMasterId", String(Number(formData.colourMasterId)));
       payload.append("colourName", selectedColour?.name || "");
       payload.append("billDate", formData.billDate);
@@ -404,21 +377,6 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
                 )}
               </div>
 
-              <div>
-                <FormLabel>QTY (MTR)</FormLabel>
-                <FormInput
-                  type="number"
-                  value={formData.qty_Mtr}
-                  onChange={(e) =>
-                    handleFieldChange("qty_Mtr", e.target.value)
-                  }
-                />
-                {formErrors.qty_Mtr && (
-                  <p className="text-red-500 text-sm">
-                    {formErrors.qty_Mtr}
-                  </p>
-                )}
-              </div>
             </div>
 
             {/* Comments */}
@@ -445,32 +403,6 @@ const CreatePVCInwardList: React.FC<CreatePVCInwardListProps> = ({
               )}
               {formErrors.gramageMasterId && (
                 <p className="text-red-500 text-sm">{formErrors.gramageMasterId}</p>
-              )}
-            </div>
-
-            <div>
-              <FormLabel>Width</FormLabel>
-              {widthLoaded ? (
-                <TomSelect
-                  value={formData.widthMasterId}
-                  onChange={(e) =>
-                    handleFieldChange("widthMasterId", e.target.value)
-                  }
-                  options={{ placeholder: "Select Width", allowEmptyOption: true }}
-                  className="w-full"
-                >
-                  <option value="">Select Width</option>
-                  {activeWidths.map((w) => (
-                    <option key={w.id} value={w.id}>
-                      {w.grm}
-                    </option>
-                  ))}
-                </TomSelect>
-              ) : (
-                <p className="text-gray-500 text-sm">Loading width...</p>
-              )}
-              {formErrors.widthMasterId && (
-                <p className="text-red-500 text-sm">{formErrors.widthMasterId}</p>
               )}
             </div>
 
