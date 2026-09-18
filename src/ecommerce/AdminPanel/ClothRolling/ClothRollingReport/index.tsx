@@ -10,8 +10,14 @@ type ClothRollingApiItem = {
   Id?: number;
   productName?: string;
   ProductName?: string;
+  gramage?: string;
+  Gramage?: string;
+  colour?: string;
+  Colour?: string;
   batchNo?: string | number;
   BatchNo?: string | number;
+  rollNo?: string;
+  RollNo?: string;
   rollMtr?: number;
   RollMtr?: number;
   defectMtr?: number;
@@ -32,7 +38,10 @@ type ClothRollingRow = {
   Date: string;
   Checker: string;
   Product: string;
+  Gramage: string;
+  Colour: string;
   Batch: string;
+  RollNo: string;
   RollMtr: number;
   DefectMtr: number;
 };
@@ -66,7 +75,10 @@ function Main() {
             Date: displayDate,
             Checker: String(item.checkerName ?? item.CheckerName ?? ""),
             Product: String(item.productName ?? item.ProductName ?? ""),
+            Gramage: String(item.gramage ?? item.Gramage ?? ""),
+            Colour: String(item.colour ?? item.Colour ?? ""),
             Batch: String(item.batchNo ?? item.BatchNo ?? ""),
+            RollNo: String(item.rollNo ?? item.RollNo ?? "-"),
             RollMtr: Number(item.rollMtr ?? item.RollMtr ?? 0),
             DefectMtr: Number(item.defectMtr ?? item.DefectMtr ?? 0),
           };
@@ -98,7 +110,10 @@ function Main() {
         { title: "Date", field: "Date" },
         { title: "Checker", field: "Checker" },
         { title: "Product", field: "Product" },
+        { title: "GRM", field: "Gramage" },
+        { title: "Color", field: "Colour" },
         { title: "Batch", field: "Batch" },
+        { title: "Roll No", field: "RollNo" },
         { title: "Roll Mtr", field: "RollMtr" },
         { title: "Defect Mtr", field: "DefectMtr" },
       ],
@@ -124,7 +139,10 @@ function Main() {
         row.Date,
         row.Checker,
         row.Product,
+        row.Gramage,
+        row.Colour,
         row.Batch,
+        row.RollNo,
         row.RollMtr,
         row.DefectMtr,
       ].some((fieldValue) => String(fieldValue).toLowerCase().includes(term))

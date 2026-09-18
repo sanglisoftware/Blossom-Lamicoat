@@ -10,8 +10,14 @@ type ClothRollingApiItem = {
   Id?: number;
   productName?: string;
   ProductName?: string;
+  gramage?: string;
+  Gramage?: string;
+  colour?: string;
+  Colour?: string;
   batchNo?: string | number;
   BatchNo?: string | number;
+  rollNo?: string;
+  RollNo?: string;
   rollMtr?: number;
   RollMtr?: number;
   defectMtr?: number;
@@ -29,6 +35,8 @@ type RollingApproveRow = {
   id: number;
   Checker: string;
   Product: string;
+  Gramage: string;
+  Colour: string;
   Batch: string;
   RollNo: string;
   RollMtr: number;
@@ -57,8 +65,10 @@ function Main() {
           id: Number(item.id ?? item.Id ?? index + 1),
           Checker: String(item.checkerName ?? item.CheckerName ?? ""),
           Product: String(item.productName ?? item.ProductName ?? ""),
+          Gramage: String(item.gramage ?? item.Gramage ?? ""),
+          Colour: String(item.colour ?? item.Colour ?? ""),
           Batch: String(item.batchNo ?? item.BatchNo ?? ""),
-          RollNo: `ROLL-${String(index + 1).padStart(3, "0")}`,
+          RollNo: String(item.rollNo ?? item.RollNo ?? "-"),
           RollMtr: Number(item.rollMtr ?? item.RollMtr ?? 0),
           DefectMtr: Number(item.defectMtr ?? item.DefectMtr ?? 0),
         }));
@@ -88,6 +98,8 @@ function Main() {
         { title: "Sr.No", formatter: "rownum", width: 80, hozAlign: "center" },
         { title: "Checker", field: "Checker" },
         { title: "Product", field: "Product" },
+        { title: "GRM", field: "Gramage" },
+        { title: "Color", field: "Colour" },
         { title: "Batch", field: "Batch" },
         { title: "Roll No", field: "RollNo" },
         { title: "Roll Mtr", field: "RollMtr" },
@@ -114,6 +126,8 @@ function Main() {
       [
         row.Checker,
         row.Product,
+        row.Gramage,
+        row.Colour,
         row.Batch,
         row.RollNo,
         row.RollMtr,

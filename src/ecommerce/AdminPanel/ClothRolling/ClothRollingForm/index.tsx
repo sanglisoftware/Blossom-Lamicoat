@@ -11,8 +11,25 @@ type FabricInwardApiItem = {
   Id?: number;
   fabricMasterName?: string;
   FabricMasterName?: string;
-  batchNo?: number;
-  BatchNo?: number;
+  batchNo?: string;
+  BatchNo?: string;
+  qtyMTR?: number;
+  QtyMTR?: number;
+  fGramageMasterName?: string;
+  FGramageMasterName?: string;
+  colourMasterName?: string;
+  ColourMasterName?: string;
+};
+
+type RollingApiItem = {
+  fabricInwardId?: number;
+  FabricInwardId?: number;
+  rollMtr?: number;
+  RollMtr?: number;
+  defectMtr?: number;
+  DefectMtr?: number;
+  isActive?: number;
+  IsActive?: number;
 };
 
 type EmployeeApiItem = {
@@ -36,16 +53,26 @@ type Option = {
   label: string;
 };
 
+const fabricCombination = (item: FabricInwardApiItem) => {
+  const name = String(item.fabricMasterName ?? item.FabricMasterName ?? "").trim();
+  const grm = String(item.fGramageMasterName ?? item.FGramageMasterName ?? "").trim();
+  const colour = String(item.colourMasterName ?? item.ColourMasterName ?? "").trim();
+  return { key: `${name}|${grm}|${colour}`, name, grm, colour };
+};
+
 const Main = () => {
   const token = localStorage.getItem("token");
   const [productOptions, setProductOptions] = useState<Option[]>([]);
-  const [batchOptions, setBatchOptions] = useState<Option[]>([]);
+  const [fabricInwards, setFabricInwards] = useState<FabricInwardApiItem[]>([]);
+  const [rolledByInward, setRolledByInward] = useState<Record<number, number>>({});
   const [checkerOptions, setCheckerOptions] = useState<Option[]>([]);
   const [formData, setFormData] = useState({
+    productKey: "",
     productName: "",
+    fabricInwardId: "",
     batchNo: "",
     rollMtr: "",
-    defectMtr: "",
+    defectMtr: "0",
     checkerName: "",
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -71,33 +98,54 @@ const Main = () => {
 
         const items = response.data?.items ?? response.data?.Items ?? [];
         const uniqueProducts = new Map<string, Option>();
-        const uniqueBatches = new Map<string, Option>();
+        setFabricInwards(items);
 
         items.forEach((item) => {
-          const product = String(
-            item.fabricMasterName ?? item.FabricMasterName ?? ""
-          ).trim();
-          const batch = String(item.batchNo ?? item.BatchNo ?? "").trim();
+          const product = fabricCombination(item);
 
-          if (product && !uniqueProducts.has(product)) {
-            uniqueProducts.set(product, { value: product, label: product });
+          if (product.name && !uniqueProducts.has(product.key)) {
+            uniqueProducts.set(product.key, {
+              value: product.key,
+              label: `${product.name} - ${product.grm || "No GRM"} - ${product.colour || "No Color"}`,
+            });
           }
 
-          if (batch && !uniqueBatches.has(batch)) {
-            uniqueBatches.set(batch, { value: batch, label: batch });
-          }
         });
 
         setProductOptions(Array.from(uniqueProducts.values()));
-        setBatchOptions(Array.from(uniqueBatches.values()));
       } catch (error) {
         console.error("Error fetching fabric inward data:", error);
         setProductOptions([]);
-        setBatchOptions([]);
+        setFabricInwards([]);
       }
     };
 
     fetchFabricInward();
+
+    const fetchExistingRolls = async () => {
+      try {
+        const response = await axios.get<PagedResponse<RollingApiItem>>(
+          `${BASE_URL}/api/clothrollingform?page=1&size=10000`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const totals: Record<number, number> = {};
+        (response.data?.items ?? response.data?.Items ?? []).forEach((roll) => {
+          const inwardId = Number(roll.fabricInwardId ?? roll.FabricInwardId ?? 0);
+          const active = roll.isActive ?? roll.IsActive ?? 1;
+          if (inwardId > 0 && active !== 0) {
+            totals[inwardId] = (totals[inwardId] ?? 0)
+              + Number(roll.rollMtr ?? roll.RollMtr ?? 0)
+              + Number(roll.defectMtr ?? roll.DefectMtr ?? 0);
+          }
+        });
+        setRolledByInward(totals);
+      } catch (error) {
+        console.error("Error fetching existing rolls:", error);
+        setRolledByInward({});
+      }
+    };
+
+    fetchExistingRolls();
   }, [token]);
 
   useEffect(() => {
@@ -150,10 +198,12 @@ const Main = () => {
 
     const errors: Record<string, string> = {};
 
-    if (!formData.productName) errors.productName = "Select product";
+    if (!formData.productKey) errors.productName = "Select product combination";
+    if (!formData.fabricInwardId) errors.fabricInwardId = "Select inward batch";
     if (!formData.batchNo) errors.batchNo = "Select batch no / lot no";
     if (!formData.rollMtr) errors.rollMtr = "Enter roll mtr";
-    if (!formData.defectMtr) errors.defectMtr = "Enter defect mtr";
+    if (Number(formData.defectMtr) < 0) errors.defectMtr = "Defect MTR cannot be negative";
+    if (Number(formData.defectMtr) > Number(formData.rollMtr)) errors.defectMtr = "Defect MTR cannot exceed actual MTR";
     if (!formData.checkerName) errors.checkerName = "Select checker name";
 
     setFormErrors(errors);
@@ -163,6 +213,7 @@ const Main = () => {
     try {
       const payload = {
         productName: formData.productName,
+        fabricInwardId: Number(formData.fabricInwardId),
         batchNo: formData.batchNo,
         rollMtr: Number(formData.rollMtr),
         defectMtr: Number(formData.defectMtr),
@@ -179,18 +230,26 @@ const Main = () => {
       );
 
       if (response.status === 200 || response.status === 201) {
+        const completedInwardId = Number(formData.fabricInwardId);
+        const completedRollMtr = Number(formData.rollMtr) + Number(formData.defectMtr);
+        setRolledByInward((current) => ({
+          ...current,
+          [completedInwardId]: (current[completedInwardId] ?? 0) + completedRollMtr,
+        }));
         setFormData({
+          productKey: "",
           productName: "",
+          fabricInwardId: "",
           batchNo: "",
           rollMtr: "",
-          defectMtr: "",
+          defectMtr: "0",
           checkerName: "",
         });
         setFormErrors({});
 
         setSuccessModalConfig({
           title: "Cloth Rolling Saved",
-          subtitle: "The cloth rolling form has been saved successfully.",
+          subtitle: `Roll ${response.data.rollNo} has been saved successfully.`,
           icon: "CheckCircle",
           buttonText: "OK",
           onButtonClick: () => setIsSuccessModalOpen(false),
@@ -208,15 +267,25 @@ const Main = () => {
       <div className="p-6">
         <h2 className="text-xl font-medium mb-6">Cloth Rolling and Checking Form</h2>
 
-        <form className="box p-5 space-y-4 w-full max-w-xl" onSubmit={handleSubmit}>
+        <form className="box p-5 grid grid-cols-1 gap-4 md:grid-cols-2 w-full max-w-5xl" onSubmit={handleSubmit}>
           <div>
             <FormLabel>Select Product</FormLabel>
             <FormSelect
-              value={formData.productName}
-              onChange={(event) => handleChange("productName", event.target.value)}
+              value={formData.productKey}
+              onChange={(event) => {
+                const selected = fabricInwards.find((inward) => fabricCombination(inward).key === event.target.value);
+                handleChange("productKey", event.target.value);
+                handleChange("productName", selected ? fabricCombination(selected).name : "");
+                handleChange("fabricInwardId", "");
+                handleChange("batchNo", "");
+              }}
             >
               <option value="">Select Product</option>
-              {productOptions.map((product) => (
+              {productOptions.filter((product) => fabricInwards.some((inward) => {
+                const id = Number(inward.id ?? inward.Id ?? 0);
+                const inwardMtr = Number(inward.qtyMTR ?? inward.QtyMTR ?? 0);
+                return fabricCombination(inward).key === product.value && (rolledByInward[id] ?? 0) < inwardMtr;
+              })).map((product) => (
                 <option key={`${product.value}-${product.label}`} value={product.value}>
                   {product.label}
                 </option>
@@ -228,25 +297,34 @@ const Main = () => {
           </div>
 
           <div>
-            <FormLabel>Select Batch No / Lot No</FormLabel>
+            <FormLabel>Select Inward Batch / Lot No</FormLabel>
             <FormSelect
-              value={formData.batchNo}
-              onChange={(event) => handleChange("batchNo", event.target.value)}
+              value={formData.fabricInwardId}
+              onChange={(event) => {
+                const inward = fabricInwards.find((item) => String(item.id ?? item.Id) === event.target.value);
+                handleChange("fabricInwardId", event.target.value);
+                handleChange("batchNo", String(inward?.batchNo ?? inward?.BatchNo ?? ""));
+              }}
             >
               <option value="">Select Batch No / Lot No</option>
-              {batchOptions.map((batch) => (
-                <option key={`${batch.value}-${batch.label}`} value={batch.value}>
-                  {batch.label}
+              {fabricInwards.filter((item) => {
+                const id = Number(item.id ?? item.Id ?? 0);
+                const inwardMtr = Number(item.qtyMTR ?? item.QtyMTR ?? 0);
+                return fabricCombination(item).key === formData.productKey
+                  && (rolledByInward[id] ?? 0) < inwardMtr;
+              }).map((inward) => (
+                <option key={inward.id ?? inward.Id} value={inward.id ?? inward.Id}>
+                  {inward.batchNo ?? inward.BatchNo} ({Math.max(0, Number(inward.qtyMTR ?? inward.QtyMTR ?? 0) - (rolledByInward[Number(inward.id ?? inward.Id)] ?? 0))} MTR remaining)
                 </option>
               ))}
             </FormSelect>
-            {formErrors.batchNo && (
-              <p className="text-red-500 text-sm mt-1">{formErrors.batchNo}</p>
+            {formErrors.fabricInwardId && (
+              <p className="text-red-500 text-sm mt-1">{formErrors.fabricInwardId}</p>
             )}
           </div>
 
           <div>
-            <FormLabel>Roll Mtr</FormLabel>
+            <FormLabel>Good Roll MTR</FormLabel>
             <FormInput
               type="number"
               placeholder="Roll Mtr"
@@ -289,9 +367,9 @@ const Main = () => {
             )}
           </div>
 
-          <Button variant="primary" type="submit" className="w-24">
+          <div className="md:col-span-2"><Button variant="primary" type="submit" className="w-24">
             Submit
-          </Button>
+          </Button></div>
         </form>
       </div>
 
