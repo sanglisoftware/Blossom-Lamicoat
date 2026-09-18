@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import Button from "@/components/Base/Button";
-import { FormInput, FormLabel } from "@/components/Base/Form";
+import { FormInput, FormLabel, FormSelect } from "@/components/Base/Form";
 import { Dialog } from "@/components/Base/Headless";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
 import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
 import SuccessModal from "../../CommonModals/SuccessModal/SuccessModal";
-import TomSelect from "@/components/Base/TomSelect";
 
 interface AddFormulaMasterModalProps {
   open: boolean;
@@ -16,7 +15,9 @@ interface AddFormulaMasterModalProps {
 
 interface FinalProductOptions {
   id: number;
-  final_Product: string;
+  finalProduct: string;
+  quality: string;
+  colour: string;
 }
 
 interface Chemical {
@@ -46,6 +47,7 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
   const [finalProducts, setFinalProducts] = useState<FinalProductOptions[]>([]);
   const [chemicals, setChemicals] = useState<Chemical[]>([]);
   const [selectedChemicals, setSelectedChemicals] = useState<SelectedChemical[]>([]);
+  const [chemicalToAdd, setChemicalToAdd] = useState("");
   const [formData, setFormData] = useState<FormulaFormData>({ finalProductId: "", mixtureName: "" });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -62,10 +64,10 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
   useEffect(() => {
     const fetchFinalProducts = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}/api/finalproduct`, {
+        const response = await axios.get(`${BASE_URL}/api/formulamaster/finished-goods`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setFinalProducts(response.data.items || []);
+        setFinalProducts(response.data || []);
       } catch (error) {
         console.error("Error fetching final products:", error);
       }
@@ -87,13 +89,7 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
 
         setChemicals(activeChemicals);
 
-        setSelectedChemicals(
-          activeChemicals.map((c: Chemical) => ({
-            chemicalMasterId: c.id,
-            chemicalName: c.name,
-            qty: "",
-          }))
-        );
+        setSelectedChemicals([]);
       } catch (error) {
         console.error("Error fetching chemicals:", error);
       }
@@ -120,6 +116,22 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
     );
   };
 
+  const addChemical = () => {
+    const chemical = chemicals.find((item) => item.id === Number(chemicalToAdd));
+    if (!chemical || selectedChemicals.some((item) => item.chemicalMasterId === chemical.id)) return;
+    setSelectedChemicals((current) => [...current, {
+      chemicalMasterId: chemical.id,
+      chemicalName: chemical.name,
+      qty: "",
+    }]);
+    setChemicalToAdd("");
+    setFormErrors((current) => ({ ...current, chemicals: "" }));
+  };
+
+  const removeChemical = (chemicalId: number) => {
+    setSelectedChemicals((current) => current.filter((item) => item.chemicalMasterId !== chemicalId));
+  };
+
   const handleSubmit = async () => {
     const errors: Record<string, string> = {};
 
@@ -131,8 +143,9 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
       errors.mixtureName = "Mixture Name is required";
     }
 
+    if (selectedChemicals.length === 0) errors.chemicals = "Add at least one chemical";
     selectedChemicals.forEach((c) => {
-      if (!c.qty) {
+      if (!c.qty || Number(c.qty) <= 0) {
         errors[`chemical_${c.chemicalMasterId}`] =
           `${c.chemicalName} qty is required`;
       }
@@ -177,7 +190,7 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
 
       const finalProductMap: Record<number, string> = {};
       finalProducts.forEach(fp => {
-        finalProductMap[fp.id] = fp.final_Product;
+        finalProductMap[fp.id] = fp.finalProduct;
       });
 
       const chemicalMap: Record<number, string> = {};
@@ -199,13 +212,8 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
       console.log("Payload with names:", displayPayload);
 
       setFormData({ finalProductId: "", mixtureName: "" });
-      setSelectedChemicals(
-        chemicals.map((c) => ({
-          chemicalMasterId: c.id,
-          chemicalName: c.name,
-          qty: "",
-        }))
-      );
+      setSelectedChemicals([]);
+      setChemicalToAdd("");
       setFormErrors({});
       onClose();
 
@@ -239,22 +247,18 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
             {/* Final Product Dropdown */}
             <div>
               <FormLabel>Final Product</FormLabel>
-              <TomSelect
+              <FormSelect
                 value={formData.finalProductId}
                 onChange={(e) => handleFinalProductChange(e.target.value)}
-                options={{
-                  placeholder: "Select Final Product",
-                  allowEmptyOption: true,
-                }}
                 className="w-full"
               >
                 <option value="">Select Final Product</option>
                 {finalProducts.map((product) => (
                   <option key={product.id} value={product.id}>
-                    {product.final_Product}
+                    {product.quality} - {product.colour}
                   </option>
                 ))}
-              </TomSelect>
+              </FormSelect>
 
               {formErrors.finalProductId && (
                 <p className="text-red-500 text-sm">
@@ -279,18 +283,26 @@ const AddFormula: React.FC<AddFormulaMasterModalProps> = ({
               )}
             </div>
 
-            {/* Chemicals */}
+            <div>
+              <FormLabel>Add Chemical</FormLabel>
+              <div className="flex gap-2">
+                <FormSelect value={chemicalToAdd} onChange={(e) => setChemicalToAdd(e.target.value)} className="flex-1">
+                  <option value="">Select chemical</option>
+                  {chemicals.filter((chemical) => !selectedChemicals.some((selected) => selected.chemicalMasterId === chemical.id)).map((chemical) => (
+                    <option key={chemical.id} value={chemical.id}>{chemical.name}</option>
+                  ))}
+                </FormSelect>
+                <Button type="button" variant="outline-primary" onClick={addChemical}>Add</Button>
+              </div>
+              {formErrors.chemicals && <p className="text-sm text-red-500">{formErrors.chemicals}</p>}
+            </div>
+
+            {/* Selected Chemicals */}
             {selectedChemicals.map((c) => (
               <div key={c.chemicalMasterId}>
                 <FormLabel>{c.chemicalName}</FormLabel>
-                <FormInput
-                  type="number"
-                  placeholder={`Enter ${c.chemicalName} qty`}
-                  value={c.qty}
-                  onChange={(e) =>
-                    handleQtyChange(c.chemicalMasterId, e.target.value)
-                  }
-                />
+                <div className="flex gap-2"><FormInput type="number" min="0" step="any" placeholder={`Enter ${c.chemicalName} qty`} value={c.qty} onChange={(e) => handleQtyChange(c.chemicalMasterId, e.target.value)} />
+                <Button type="button" variant="outline-danger" onClick={() => removeChemical(c.chemicalMasterId)}>Remove</Button></div>
                 {formErrors[`chemical_${c.chemicalMasterId}`] && (
                   <p className="text-sm text-red-500">
                     {formErrors[`chemical_${c.chemicalMasterId}`]}

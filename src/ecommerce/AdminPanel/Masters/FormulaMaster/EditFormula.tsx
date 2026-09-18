@@ -1,11 +1,10 @@
 import _ from "lodash";
 import { useEffect, useState } from "react";
 import Button from "@/components/Base/Button";
-import { FormInput, FormLabel, FormSwitch, } from "@/components/Base/Form";
+import { FormInput, FormLabel, FormSwitch, FormSelect, } from "@/components/Base/Form";
 import Lucide from "@/components/Base/Lucide";
 import { Dialog, Menu } from "@/components/Base/Headless";
 import "@/assets/css/vendors/tabulator.css";
-import TomSelect from "@/components/Base/TomSelect";
 import axios from "axios";
 import { BASE_URL } from "@/ecommerce/config/config";
 import { SuccessModalConfig } from "../../CommonModals/SuccessModal/SuccessModalConfig";
@@ -21,10 +20,10 @@ interface EditFormulaProps {
 
 //for role dropdown
 interface finaProduct {
-    id: string;
-    final_Product: string;
-    finalProductId?: number;
-    mixtureName?: string;
+    id: number;
+    finalProduct: string;
+    quality: string;
+    colour: string;
 }
 
 interface Chemical {
@@ -42,6 +41,7 @@ interface SelectedChemicals {
 const EditFormula: React.FC<EditFormulaProps> = ({ open, onClose, onSuccess, formulaMasterId }) => {
     const [selectedChemicals, setSelectedChemicals] = useState<SelectedChemicals[]>([]);
     const [chemicals, setChemicals] = useState<Chemical[]>([]);
+    const [chemicalToAdd, setChemicalToAdd] = useState("");
     const token = localStorage.getItem("token");
     //Success Modal config
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -158,17 +158,14 @@ useEffect(() => {
             setChemicals(activeChemicals);
 
             // 3️⃣ Merge qty properly
-         const updatedChemicals = activeChemicals.map((c: Chemical) => {
-    const existing = formulaData.chemicals?.find(
-        (x: any) => Number(x.chemicalMasterId) === Number(c.id)
-    );
-
-    return {
-        chemicalMasterId: c.id,
-        chemicalName: c.name,
-        qty: existing ? String(existing.qty) : ""
-    };
-});
+            const updatedChemicals = (formulaData.chemicals || []).map((existing: any) => {
+                const chemical = activeChemicals.find((c: Chemical) => Number(c.id) === Number(existing.chemicalMasterId));
+                return {
+                    chemicalMasterId: Number(existing.chemicalMasterId),
+                    chemicalName: chemical?.name ?? existing.chemicalName ?? "Chemical",
+                    qty: String(existing.qty ?? "")
+                };
+            });
 
 
             setSelectedChemicals(updatedChemicals);
@@ -197,7 +194,7 @@ useEffect(() => {
         const fetchCollections = async () => {
             try {
                 const response = await axios.get(
-                    `${BASE_URL}/api/formulamaster`,
+                    `${BASE_URL}/api/formulamaster/finished-goods`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -205,7 +202,7 @@ useEffect(() => {
                     }
                 );
 
-                setRolesForTom(response.data.items || []);
+                setRolesForTom(response.data || []);
 
             } catch (error) {
                 console.error('Error fetching roles:', error);
@@ -238,6 +235,12 @@ useEffect(() => {
         if (!formData.mixtureName.trim()) {
             errors.mixtureName = "Mixture Name is required";
         }
+        if (selectedChemicals.length === 0) errors.chemicals = "Add at least one chemical";
+        selectedChemicals.forEach((chemical) => {
+            if (!chemical.qty || Number(chemical.qty) <= 0) {
+                errors[`chemical_${chemical.chemicalMasterId}`] = `${chemical.chemicalName} qty is required`;
+            }
+        });
 
         setFormErrors(errors);
         if (Object.keys(errors).length > 0) return;
@@ -312,6 +315,22 @@ useEffect(() => {
         );
     };
 
+    const addChemical = () => {
+        const chemical = chemicals.find((item) => item.id === Number(chemicalToAdd));
+        if (!chemical || selectedChemicals.some((item) => item.chemicalMasterId === chemical.id)) return;
+        setSelectedChemicals((current) => [...current, {
+            chemicalMasterId: chemical.id,
+            chemicalName: chemical.name,
+            qty: "",
+        }]);
+        setChemicalToAdd("");
+        setFormErrors((current) => ({ ...current, chemicals: "" }));
+    };
+
+    const removeChemical = (chemicalId: number) => {
+        setSelectedChemicals((current) => current.filter((item) => item.chemicalMasterId !== chemicalId));
+    };
+
 
     return (
         <>
@@ -339,25 +358,21 @@ useEffect(() => {
 
                         <div>
                             <FormLabel htmlFor="product">Select final product</FormLabel>
-                            <TomSelect
+                            <FormSelect
                                 id="finalproduct"
-                                value={formData.formulaMasterId}
+                                value={formData.finalProductId}
                                     disabled
                                 onChange={(e: any) => {
                                     const value = e.target.value;
 
                                     setFormData(prev => ({
                                         ...prev,
-                                        formulaMasterId: value,
+                                        finalProductId: value,
                                     }));
 
                                     if (value !== "") {
                                         setFormErrors(prev => ({ ...prev, product: "" }));
                                     }
-                                }}
-                                options={{
-                                    placeholder: "Select final product",
-                                    allowEmptyOption: true
                                 }}
                                 className="w-full"
                             >
@@ -365,10 +380,10 @@ useEffect(() => {
 
                                 {rolesForTom.map((product) => (
                                     <option key={product.id} value={String(product.id)}>
-                                        {product.final_Product}
+                                        {product.quality} - {product.colour}
                                     </option>
                                 ))}
-                            </TomSelect>
+                            </FormSelect>
 
                             {formErrors.product && <p className="text-red-500 text-sm">{formErrors.product}</p>}
                         </div>
@@ -395,17 +410,25 @@ useEffect(() => {
                             {formErrors.mixtureName && <p className="text-red-500 text-sm">{formErrors.mixtureName}</p>}
                         </div>
 
+                        <div>
+                            <FormLabel>Add Chemical</FormLabel>
+                            <div className="flex gap-2">
+                                <FormSelect value={chemicalToAdd} onChange={(e) => setChemicalToAdd(e.target.value)} className="flex-1">
+                                    <option value="">Select chemical</option>
+                                    {chemicals.filter((chemical) => !selectedChemicals.some((selected) => selected.chemicalMasterId === chemical.id)).map((chemical) => (
+                                        <option key={chemical.id} value={chemical.id}>{chemical.name}</option>
+                                    ))}
+                                </FormSelect>
+                                <Button type="button" variant="outline-primary" onClick={addChemical}>Add</Button>
+                            </div>
+                            {formErrors.chemicals && <p className="text-sm text-red-500">{formErrors.chemicals}</p>}
+                        </div>
+
                         {selectedChemicals.map((c) => (
                             <div key={c.chemicalMasterId}>
                                 <FormLabel>{c.chemicalName}</FormLabel>
-                                <FormInput
-                                    type="number"
-                                    placeholder={`Enter ${c.chemicalName} qty`}
-                                    value={c.qty}
-                                    onChange={(e) =>
-                                        handleQtyChange(c.chemicalMasterId, e.target.value)
-                                    }
-                                />
+                                <div className="flex gap-2"><FormInput type="number" min="0" step="any" placeholder={`Enter ${c.chemicalName} qty`} value={c.qty} onChange={(e) => handleQtyChange(c.chemicalMasterId, e.target.value)} />
+                                <Button type="button" variant="outline-danger" onClick={() => removeChemical(c.chemicalMasterId)}>Remove</Button></div>
                                 {formErrors[`chemical_${c.chemicalMasterId}`] && (
                                     <p className="text-sm text-red-500">
                                         {formErrors[`chemical_${c.chemicalMasterId}`]}
