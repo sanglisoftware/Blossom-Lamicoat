@@ -36,11 +36,12 @@ type FabricInward = { id: number; fabricMasterName: string; batchNo: string; qty
 
 type StockResponse = {
   chemicals: ChemicalStock[];
+  mixtures: MaterialStock[];
   fabrics: MaterialStock[];
   pvc: MaterialStock[];
 };
 
-type Tab = "chemical" | "fabric" | "pvc";
+type Tab = "chemical" | "mixture" | "fabric" | "pvc";
 
 const number = (value: number) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 3 }).format(value || 0);
@@ -50,9 +51,9 @@ function Main() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryTab = new URLSearchParams(location.search).get("tab");
-  const activeTab: Tab = queryTab === "fabric" || queryTab === "pvc" ? queryTab : "chemical";
+  const activeTab: Tab = queryTab === "mixture" || queryTab === "fabric" || queryTab === "pvc" ? queryTab : "chemical";
 
-  const [stock, setStock] = useState<StockResponse>({ chemicals: [], fabrics: [], pvc: [] });
+  const [stock, setStock] = useState<StockResponse>({ chemicals: [], mixtures: [], fabrics: [], pvc: [] });
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
@@ -93,7 +94,7 @@ function Main() {
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const source = activeTab === "chemical" ? stock.chemicals : activeTab === "fabric" ? stock.fabrics : stock.pvc;
+    const source = activeTab === "chemical" ? stock.chemicals : activeTab === "mixture" ? stock.mixtures : activeTab === "fabric" ? stock.fabrics : stock.pvc;
     return source.filter((row) => {
       const name = "chemicalName" in row ? row.chemicalName : row.name;
       const details = "chemicalName" in row ? name : `${name} ${row.gramage || ""} ${row.colour || ""}`;
@@ -176,7 +177,7 @@ function Main() {
 
       <div className="box p-5">
         <div className="mb-5 flex flex-wrap items-center gap-2">
-          {(["chemical", "fabric", "pvc"] as Tab[]).map((tab) => (
+          {(["chemical", "mixture", "fabric", "pvc"] as Tab[]).map((tab) => (
             <Button
               key={tab}
               variant={activeTab === tab ? "primary" : "outline-secondary"}
@@ -199,11 +200,11 @@ function Main() {
             <thead className="bg-slate-100 dark:bg-darkmode-800">
               <tr>
                 <th className="px-4 py-3 text-left">Sr.No</th>
-                <th className="px-4 py-3 text-left">{activeTab === "chemical" ? "Chemical" : activeTab === "fabric" ? "Fabric" : "PVC"}</th>
+                <th className="px-4 py-3 text-left">{activeTab === "chemical" ? "Chemical" : activeTab === "mixture" ? "Product / Mixture" : activeTab === "fabric" ? "Fabric" : "PVC"}</th>
                 {activeTab === "fabric" && <th className="px-4 py-3 text-left">GRM</th>}
                 {activeTab === "fabric" && <th className="px-4 py-3 text-left">Color</th>}
                 <th className="px-4 py-3 text-center">Unit</th>
-                <th className="px-4 py-3 text-right">Received</th>
+                <th className="px-4 py-3 text-right">{activeTab === "mixture" ? "Produced" : "Received"}</th>
                 {activeTab === "fabric" && <th className="px-4 py-3 text-right">Actual Rolled</th>}
                 {activeTab === "fabric" && <th className="px-4 py-3 text-right">Defective</th>}
                 {activeTab === "fabric" && <th className="px-4 py-3 text-right">Extra / Short</th>}

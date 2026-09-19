@@ -14,8 +14,8 @@ const boundingOptions: Option[] = [
 type FinalProductApiItem = {
   id?: number;
   Id?: number;
-  final_Product?: string;
-  Final_Product?: string;
+  finalProduct?: string;
+  FinalProduct?: string;
 };
 
 type ClothRollingApiItem = {
@@ -112,7 +112,7 @@ const Main = () => {
           employeeResponse,
         ] = await Promise.all([
           axios.get<PagedResponse<FinalProductApiItem>>(
-            `${BASE_URL}/api/finalproduct?page=1&size=1000`,
+            `${BASE_URL}/api/formulamaster/finished-goods`,
             { headers: { Authorization: `Bearer ${token}` } }
           ),
           axios.get<PagedResponse<ClothRollingApiItem>>(
@@ -133,12 +133,13 @@ const Main = () => {
           ),
         ]);
 
-        const finalProducts =
-          finalProductResponse.data?.items ?? finalProductResponse.data?.Items ?? [];
+        const finalProducts = Array.isArray(finalProductResponse.data)
+          ? finalProductResponse.data
+          : finalProductResponse.data?.items ?? finalProductResponse.data?.Items ?? [];
         setFinalProductOptions(
           finalProducts.map((item) => ({
             value: String(item.id ?? item.Id ?? ""),
-            label: String(item.final_Product ?? item.Final_Product ?? ""),
+            label: String(item.finalProduct ?? item.FinalProduct ?? ""),
           }))
         );
 

@@ -5,159 +5,103 @@ import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "@/assets/css/vendors/tabulator.css";
 import { BASE_URL } from "@/ecommerce/config/config";
 
-type ClothRollingApiItem = {
-  id?: number;
-  Id?: number;
-  productName?: string;
-  ProductName?: string;
-  gramage?: string;
-  Gramage?: string;
-  colour?: string;
-  Colour?: string;
-  batchNo?: string | number;
-  BatchNo?: string | number;
-  rollNo?: string;
-  RollNo?: string;
-  rollMtr?: number;
-  RollMtr?: number;
-  defectMtr?: number;
-  DefectMtr?: number;
-  checkerName?: string;
-  CheckerName?: string;
+type PagedResponse<T> = { items?: T[]; Items?: T[] };
+type FabricInwardItem = {
+  id?: number; Id?: number; fabricMasterName?: string; FabricMasterName?: string;
+  fGramageMasterName?: string; FGramageMasterName?: string;
+  colourMasterName?: string; ColourMasterName?: string;
+  batchNo?: string; BatchNo?: string; qtyMTR?: number; QtyMTR?: number;
+  isActive?: number; IsActive?: number;
 };
-
-type ClothRollingPagedResponse = {
-  items?: ClothRollingApiItem[];
-  Items?: ClothRollingApiItem[];
+type RollingItem = {
+  fabricInwardId?: number; FabricInwardId?: number; rollNo?: string; RollNo?: string;
+  rollMtr?: number; RollMtr?: number; defectMtr?: number; DefectMtr?: number;
+  isActive?: number; IsActive?: number;
 };
-
-type RollingApproveRow = {
-  id: number;
-  Checker: string;
-  Product: string;
-  Gramage: string;
-  Colour: string;
-  Batch: string;
-  RollNo: string;
-  RollMtr: number;
-  DefectMtr: number;
+type ReconciliationRow = {
+  id: number; Product: string; Gramage: string; Colour: string; Batch: string;
+  InwardMtr: number; RollCount: number; RollDetails: string; TotalRollMtr: number;
+  DefectMtr: number; ProcessedMtr: number; RemainingMtr: number;
 };
 
 function Main() {
   const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator | null>(null);
-
   const [searchTerm, setSearchTerm] = useState("");
-  const [tableData, setTableData] = useState<RollingApproveRow[]>([]);
+  const [tableData, setTableData] = useState<ReconciliationRow[]>([]);
 
   useEffect(() => {
-    const fetchRollingApproveReport = async () => {
+    const fetchReport = async () => {
       try {
-        const response = await axios.get<ClothRollingPagedResponse>(
-          `${BASE_URL}/api/clothrollingform?page=1&size=1000`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        const items = response.data?.items ?? response.data?.Items ?? [];
-
-        const mappedRows: RollingApproveRow[] = items.map((item, index) => ({
-          id: Number(item.id ?? item.Id ?? index + 1),
-          Checker: String(item.checkerName ?? item.CheckerName ?? ""),
-          Product: String(item.productName ?? item.ProductName ?? ""),
-          Gramage: String(item.gramage ?? item.Gramage ?? ""),
-          Colour: String(item.colour ?? item.Colour ?? ""),
-          Batch: String(item.batchNo ?? item.BatchNo ?? ""),
-          RollNo: String(item.rollNo ?? item.RollNo ?? "-"),
-          RollMtr: Number(item.rollMtr ?? item.RollMtr ?? 0),
-          DefectMtr: Number(item.defectMtr ?? item.DefectMtr ?? 0),
-        }));
-
-        setTableData(mappedRows);
+        const headers = { Authorization: `Bearer ${token}` };
+        const [inwardResponse, rollingResponse] = await Promise.all([
+          axios.get<PagedResponse<FabricInwardItem>>(`${BASE_URL}/api/fabricinward?page=1&size=10000`, { headers }),
+          axios.get<PagedResponse<RollingItem>>(`${BASE_URL}/api/clothrollingform?page=1&size=10000`, { headers }),
+        ]);
+        const inwards = inwardResponse.data?.items ?? inwardResponse.data?.Items ?? [];
+        const rolls = rollingResponse.data?.items ?? rollingResponse.data?.Items ?? [];
+        const rows = inwards.filter((inward) => (inward.isActive ?? inward.IsActive ?? 1) !== 0).map((inward) => {
+          const inwardId = Number(inward.id ?? inward.Id ?? 0);
+          const inwardMtr = Number(inward.qtyMTR ?? inward.QtyMTR ?? 0);
+          const batchRolls = rolls.filter((roll) => Number(roll.fabricInwardId ?? roll.FabricInwardId ?? 0) === inwardId && (roll.isActive ?? roll.IsActive ?? 1) !== 0);
+          const totalRollMtr = batchRolls.reduce((sum, roll) => sum + Number(roll.rollMtr ?? roll.RollMtr ?? 0), 0);
+          const defectMtr = batchRolls.reduce((sum, roll) => sum + Number(roll.defectMtr ?? roll.DefectMtr ?? 0), 0);
+          const processedMtr = totalRollMtr + defectMtr;
+          return {
+            id: inwardId,
+            Product: String(inward.fabricMasterName ?? inward.FabricMasterName ?? ""),
+            Gramage: String(inward.fGramageMasterName ?? inward.FGramageMasterName ?? ""),
+            Colour: String(inward.colourMasterName ?? inward.ColourMasterName ?? ""),
+            Batch: String(inward.batchNo ?? inward.BatchNo ?? ""), InwardMtr: inwardMtr,
+            RollCount: batchRolls.length,
+            RollDetails: batchRolls.map((roll) => `${roll.rollNo ?? roll.RollNo ?? "-"} (${Number(roll.rollMtr ?? roll.RollMtr ?? 0)} MTR)`).join(", "),
+            TotalRollMtr: totalRollMtr, DefectMtr: defectMtr, ProcessedMtr: processedMtr,
+            RemainingMtr: inwardMtr - processedMtr,
+          };
+        }).sort((a, b) => b.id - a.id);
+        setTableData(rows);
       } catch (error) {
-        console.error("Error fetching rolling approve report:", error);
+        console.error("Error fetching inward rolling report:", error);
         setTableData([]);
       }
     };
-
-    fetchRollingApproveReport();
+    fetchReport();
   }, [token]);
 
   useEffect(() => {
     if (!tableRef.current) return;
-
     tabulator.current = new Tabulator(tableRef.current, {
-      data: tableData,
-      layout: "fitColumns",
-      responsiveLayout: "collapse",
-      placeholder: "No matching records found",
-      pagination: true,
-      paginationSize: 10,
-      paginationSizeSelector: [10, 20, 30, 40],
+      data: tableData, layout: "fitDataStretch", responsiveLayout: "collapse",
+      placeholder: "No inward records found", pagination: true, paginationSize: 10,
+      paginationSizeSelector: [10, 20, 30, 50],
       columns: [
-        { title: "Sr.No", formatter: "rownum", width: 80, hozAlign: "center" },
-        { title: "Checker", field: "Checker" },
-        { title: "Product", field: "Product" },
-        { title: "GRM", field: "Gramage" },
-        { title: "Color", field: "Colour" },
-        { title: "Batch", field: "Batch" },
-        { title: "Roll No", field: "RollNo" },
-        { title: "Roll Mtr", field: "RollMtr" },
-        { title: "Defect Mtr", field: "DefectMtr" },
+        { title: "Sr.No", formatter: "rownum", width: 75, hozAlign: "center" },
+        { title: "Fabric", field: "Product", minWidth: 140 }, { title: "GRM", field: "Gramage", minWidth: 90 },
+        { title: "Color", field: "Colour", minWidth: 100 }, { title: "Batch", field: "Batch", minWidth: 110 },
+        { title: "Inward MTR", field: "InwardMtr", hozAlign: "right" },
+        { title: "No. of Rolls", field: "RollCount", hozAlign: "center" },
+        { title: "Roll No. & MTR", field: "RollDetails", minWidth: 260, formatter: "textarea" },
+        { title: "Total Roll MTR", field: "TotalRollMtr", hozAlign: "right" },
+        { title: "Defect MTR", field: "DefectMtr", hozAlign: "right" },
+        { title: "Processed MTR", field: "ProcessedMtr", hozAlign: "right" },
+        { title: "Remaining MTR", field: "RemainingMtr", hozAlign: "right" },
       ],
     });
-
-    return () => {
-      tabulator.current?.destroy();
-      tabulator.current = null;
-    };
+    return () => { tabulator.current?.destroy(); tabulator.current = null; };
   }, [tableData]);
 
   const handleSearch = (value: string) => {
-    const term = value.trim().toLowerCase();
     setSearchTerm(value);
-
-    if (!term) {
-      tabulator.current?.clearFilter(true);
-      return;
-    }
-
-    tabulator.current?.setFilter((row: RollingApproveRow) =>
-      [
-        row.Checker,
-        row.Product,
-        row.Gramage,
-        row.Colour,
-        row.Batch,
-        row.RollNo,
-        row.RollMtr,
-        row.DefectMtr,
-      ].some((fieldValue) => String(fieldValue).toLowerCase().includes(term))
-    );
+    const term = value.trim().toLowerCase();
+    if (!term) { tabulator.current?.clearFilter(true); return; }
+    tabulator.current?.setFilter((row: ReconciliationRow) => Object.values(row).some((field) => String(field).toLowerCase().includes(term)));
   };
 
-  return (
-    <>
-      <div className="flex items-center justify-between mt-8 mb-4">
-        <h2 className="text-lg font-medium">Rolling Approve Report</h2>
-      </div>
-
-      <div className="p-5 box">
-        <div className="flex items-center mb-3">
-          <span className="mr-2 font-medium">Search:</span>
-          <FormInput
-            type="text"
-            placeholder="Search all fields..."
-            className="w-64"
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-        </div>
-
-        <div ref={tableRef}></div>
-      </div>
-    </>
-  );
+  return <><div className="flex items-center justify-between mt-8 mb-4"><h2 className="text-lg font-medium">Fabric Inward & Rolling Report</h2></div>
+    <div className="p-5 box"><div className="flex items-center mb-3"><span className="mr-2 font-medium">Search:</span>
+      <FormInput type="text" placeholder="Search all fields..." className="w-64" value={searchTerm} onChange={(event) => handleSearch(event.target.value)} />
+    </div><div ref={tableRef}></div></div></>;
 }
 
 export default Main;
