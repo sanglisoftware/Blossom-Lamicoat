@@ -4,6 +4,7 @@ import { FormInput } from "@/components/Base/Form";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "@/assets/css/vendors/tabulator.css";
 import { BASE_URL } from "@/ecommerce/config/config";
+import { useNavigate } from "react-router-dom";
 
 type LaminationApiItem = {
   id?: number;
@@ -12,12 +13,18 @@ type LaminationApiItem = {
   WorkerName?: string;
   finalProductName?: string;
   FinalProductName?: string;
+  finalProductQtyMtr?: number;
+  FinalProductQtyMtr?: number;
   clothRollCode?: string;
   ClothRollCode?: string;
   pvcBatchNo?: string;
   PVCBatchNo?: string;
   pvcQty?: number;
   PVCQty?: number;
+  mixtureName?: string;
+  MixtureName?: string;
+  mixtureQty?: number;
+  MixtureQty?: number;
   chemicalName?: string;
   ChemicalName?: string;
   chemicalQty?: number;
@@ -39,9 +46,12 @@ type LaminationRow = {
   id: number;
   Worker: string;
   FinalProduct: string;
+  FinalProductQtyMtr: number;
   FabricRollNo: string;
   PVCRollNo: string;
   PVCQty: number;
+  Mixture: string;
+  MixtureQty: number;
   ChemicalNo: string;
   ChemicalQty: number;
   Bounding: string;
@@ -50,6 +60,7 @@ type LaminationRow = {
 };
 
 function Main() {
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const tableRef = createRef<HTMLDivElement>();
   const tabulator = useRef<Tabulator | null>(null);
@@ -70,9 +81,12 @@ function Main() {
           id: Number(item.id ?? item.Id ?? index + 1),
           Worker: String(item.workerName ?? item.WorkerName ?? ""),
           FinalProduct: String(item.finalProductName ?? item.FinalProductName ?? ""),
+          FinalProductQtyMtr: Number(item.finalProductQtyMtr ?? item.FinalProductQtyMtr ?? 0),
           FabricRollNo: String(item.clothRollCode ?? item.ClothRollCode ?? ""),
           PVCRollNo: String(item.pvcBatchNo ?? item.PVCBatchNo ?? ""),
           PVCQty: Number(item.pvcQty ?? item.PVCQty ?? 0),
+          Mixture: String(item.mixtureName ?? item.MixtureName ?? ""),
+          MixtureQty: Number(item.mixtureQty ?? item.MixtureQty ?? 0),
           ChemicalNo: String(item.chemicalName ?? item.ChemicalName ?? ""),
           ChemicalQty: Number(item.chemicalQty ?? item.ChemicalQty ?? 0),
           Bounding: String(item.bounding ?? item.Bounding ?? ""),
@@ -105,14 +119,24 @@ function Main() {
         { title: "Sr.No", formatter: "rownum", width: 80, hozAlign: "center" },
         { title: "Worker", field: "Worker" },
         { title: "Final Product", field: "FinalProduct" },
+        { title: "Final Product MTR", field: "FinalProductQtyMtr" },
         { title: "Fabric Roll No", field: "FabricRollNo" },
         { title: "PVC Roll No", field: "PVCRollNo" },
         { title: "PVC Qty", field: "PVCQty" },
-        { title: "Chemical No", field: "ChemicalNo" },
-        { title: "Chemical Qty", field: "ChemicalQty" },
-        { title: "Bounding", field: "Bounding" },
+        { title: "Chemical Mixture", field: "Mixture" },
+        { title: "Mixture Qty", field: "MixtureQty" },
+        { title: "Bonding Chemical", field: "ChemicalNo" },
+        { title: "Bonding Qty", field: "ChemicalQty" },
+        { title: "Bonding Used", field: "Bounding" },
         { title: "Temp", field: "Temp" },
         { title: "Time", field: "Time" },
+        {
+          title: "Action",
+          width: 100,
+          hozAlign: "center",
+          formatter: () => "<button class='rounded bg-primary px-3 py-1 text-white'>Edit</button>",
+          cellClick: (_event, cell) => navigate(`/lamination-form?edit=${cell.getRow().getData().id}`),
+        },
       ],
     });
 
@@ -135,9 +159,12 @@ function Main() {
       [
         row.Worker,
         row.FinalProduct,
+        row.FinalProductQtyMtr,
         row.FabricRollNo,
         row.PVCRollNo,
         row.PVCQty,
+        row.Mixture,
+        row.MixtureQty,
         row.ChemicalNo,
         row.ChemicalQty,
         row.Bounding,

@@ -39,9 +39,10 @@ type StockResponse = {
   mixtures: MaterialStock[];
   fabrics: MaterialStock[];
   pvc: MaterialStock[];
+  finishedGoods: MaterialStock[];
 };
 
-type Tab = "chemical" | "mixture" | "fabric" | "pvc";
+type Tab = "chemical" | "mixture" | "fabric" | "pvc" | "finished";
 
 const number = (value: number) =>
   new Intl.NumberFormat("en-IN", { maximumFractionDigits: 3 }).format(value || 0);
@@ -51,9 +52,9 @@ function Main() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryTab = new URLSearchParams(location.search).get("tab");
-  const activeTab: Tab = queryTab === "mixture" || queryTab === "fabric" || queryTab === "pvc" ? queryTab : "chemical";
+  const activeTab: Tab = queryTab === "mixture" || queryTab === "fabric" || queryTab === "pvc" || queryTab === "finished" ? queryTab : "chemical";
 
-  const [stock, setStock] = useState<StockResponse>({ chemicals: [], mixtures: [], fabrics: [], pvc: [] });
+  const [stock, setStock] = useState<StockResponse>({ chemicals: [], mixtures: [], fabrics: [], pvc: [], finishedGoods: [] });
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
@@ -94,7 +95,7 @@ function Main() {
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const source = activeTab === "chemical" ? stock.chemicals : activeTab === "mixture" ? stock.mixtures : activeTab === "fabric" ? stock.fabrics : stock.pvc;
+    const source = activeTab === "chemical" ? stock.chemicals : activeTab === "mixture" ? stock.mixtures : activeTab === "fabric" ? stock.fabrics : activeTab === "pvc" ? stock.pvc : stock.finishedGoods;
     return source.filter((row) => {
       const name = "chemicalName" in row ? row.chemicalName : row.name;
       const details = "chemicalName" in row ? name : `${name} ${row.gramage || ""} ${row.colour || ""}`;
@@ -177,13 +178,13 @@ function Main() {
 
       <div className="box p-5">
         <div className="mb-5 flex flex-wrap items-center gap-2">
-          {(["chemical", "mixture", "fabric", "pvc"] as Tab[]).map((tab) => (
+          {(["chemical", "mixture", "fabric", "pvc", "finished"] as Tab[]).map((tab) => (
             <Button
               key={tab}
               variant={activeTab === tab ? "primary" : "outline-secondary"}
               onClick={() => selectTab(tab)}
             >
-              {tab === "pvc" ? "PVC Stock" : `${tab[0].toUpperCase()}${tab.slice(1)} Stock`}
+              {tab === "pvc" ? "PVC Stock" : tab === "finished" ? "Finished Goods Stock" : `${tab[0].toUpperCase()}${tab.slice(1)} Stock`}
             </Button>
           ))}
           <FormInput
@@ -200,11 +201,11 @@ function Main() {
             <thead className="bg-slate-100 dark:bg-darkmode-800">
               <tr>
                 <th className="px-4 py-3 text-left">Sr.No</th>
-                <th className="px-4 py-3 text-left">{activeTab === "chemical" ? "Chemical" : activeTab === "mixture" ? "Product / Mixture" : activeTab === "fabric" ? "Fabric" : "PVC"}</th>
+                <th className="px-4 py-3 text-left">{activeTab === "chemical" ? "Chemical" : activeTab === "mixture" ? "Product / Mixture" : activeTab === "fabric" ? "Fabric" : activeTab === "pvc" ? "PVC" : "Finished Product"}</th>
                 {activeTab === "fabric" && <th className="px-4 py-3 text-left">GRM</th>}
                 {activeTab === "fabric" && <th className="px-4 py-3 text-left">Color</th>}
                 <th className="px-4 py-3 text-center">Unit</th>
-                <th className="px-4 py-3 text-right">{activeTab === "mixture" ? "Produced" : "Received"}</th>
+                <th className="px-4 py-3 text-right">{activeTab === "mixture" || activeTab === "finished" ? "Produced" : "Received"}</th>
                 {activeTab === "fabric" && <th className="px-4 py-3 text-right">Actual Rolled</th>}
                 {activeTab === "fabric" && <th className="px-4 py-3 text-right">Defective</th>}
                 {activeTab === "fabric" && <th className="px-4 py-3 text-right">Extra / Short</th>}
